@@ -1,6 +1,6 @@
 // auto-talk: the street's day, worked out from a seed. No page code here, so it can be tested in node.
 
-// The 8 neighbours: a planet, its personality type, and a placeholder look (head colour).
+// The 10 neighbours (8 types; Pluto and the Moon share GRUFF and DREAMY): a planet, its personality type, and a placeholder look (head colour).
 export const PLANETS = {
   mercury: { name: 'Mercury', type: 'SLY',      color: '#9a948c' },
   venus:   { name: 'Venus',   type: 'HAUGHTY',  color: '#e3c27a' },
@@ -10,6 +10,8 @@ export const PLANETS = {
   saturn:  { name: 'Saturn',  type: 'GRUFF',    color: '#e6d39a' },
   uranus:  { name: 'Uranus',  type: 'PEPPY',    color: '#7fd6e0' },
   neptune: { name: 'Neptune', type: 'DREAMY',   color: '#3450c8' },
+  pluto:   { name: 'Pluto',   type: 'GRUFF',    color: '#c9a98a' },
+  moon:    { name: 'Moon',    type: 'DREAMY',   color: '#d8d8d0' },
 };
 
 // Animal Crossing: New Leaf's personality compatibility points (Nookipedia, "Compatibility"),

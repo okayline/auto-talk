@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.3 (Nov 19, 2026)
+- Added: two more neighbours, Pluto (GRUFF) and the Moon (DREAMY), so all 10 houses are filled: you pick 5 of 10 for your side and the other 5 live across the street.
+- Removed: the empty houses.
+
 ## v0.2 (Nov 19, 2026)
 - Added: a two-sided street: 5 houses across the road from your 5, facing each other in pairs. Across the street are the planets you didn't pick, and empty houses for the rest. They don't take part in the day yet.
 - Removed: the single row of houses.
