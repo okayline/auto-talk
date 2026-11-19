@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.4 (Nov 19, 2026)
+- Added: the street runs on your real clock. Neighbours sleep at their personality's hours, and when awake are home (lit window) or out on the road, decided each hour. Neighbours who are out meet every minute or two, with emote bubbles and a log of this hour's meetings. After a clash one of the two goes home to think for a while, and a pair who just met don't meet again straight away. The page updates itself.
+- Removed: the "Play the day" and "Next day" buttons and the once-a-day run of 10 meetings.
+
 ## v0.3 (Nov 19, 2026)
 - Added: two more neighbours, Pluto (GRUFF) and the Moon (DREAMY), so all 10 houses are filled: you pick 5 of 10 for your side and the other 5 live across the street.
 - Removed: the empty houses.

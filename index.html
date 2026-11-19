@@ -8,58 +8,59 @@
   body { background: #0d1022; color: #e8e8f0; font-family: "Courier New", monospace; margin: 0; padding: 20px; }
   h1 { color: #ff8fc8; font-size: 20px; margin: 0 0 12px; }
   .pick label { display: inline-block; margin: 4px 10px 4px 0; cursor: pointer; }
-  .town { margin: 24px 0 8px; max-width: 620px; }
-  .row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
-  .road { height: 46px; margin: 10px 0; background: #161b33; border-top: 2px solid #3a4670; border-bottom: 2px solid #3a4670;
-          background-image: repeating-linear-gradient(90deg, #ff8fc8 0 18px, transparent 18px 36px); background-size: 100% 2px; background-repeat: no-repeat; background-position: 0 50%; }
-  .side { font-size: 11px; color: #8890b0; margin: 4px 0; }
-  .house.across { border-color: #2c3456; }
-  .house { height: 130px; background: #1d2742; border: 2px solid #3a4670; position: relative; text-align: center; }
-  .house.inside { opacity: 0.45; }
-  .head { width: 56px; height: 56px; border-radius: 50%; margin: 26px auto 6px; position: relative; transition: transform .2s; }
-  .head.ringed::after { content: ""; position: absolute; left: -16px; top: 22px; width: 88px; height: 12px; border: 3px solid #cbbf8a; border-radius: 50%; }
-  .head.tilted { transform: rotate(90deg); }
-  .house.talking .head { transform: scale(1.12); }
-  .house.talking .head.tilted { transform: rotate(90deg) scale(1.12); }
-  .label { font-size: 12px; }
-  .bubble { position: absolute; top: -18px; right: -8px; background: #fff; color: #222; border-radius: 12px; padding: 2px 8px; font-size: 18px; display: none; }
-  .house.talking .bubble { display: block; }
-  .log { margin-top: 18px; line-height: 1.6; min-height: 1.6em; }
-  .log .clash { color: #ff8fc8; }
-  button { font-family: inherit; background: #ff8fc8; color: #0d1022; border: 0; padding: 6px 12px; cursor: pointer; margin-right: 8px; }
-  button:disabled { opacity: .4; cursor: default; }
+  .clock { font-size: 18px; color: #ff8fc8; margin-left: 4px; }
   .note { color: #8890b0; font-size: 12px; }
+  .town { margin: 20px 0 8px; max-width: 620px; }
+  .row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
+  .side { font-size: 11px; color: #8890b0; margin: 4px 0; }
+  .house { height: 120px; background: #1d2742; border: 2px solid #3a4670; position: relative; text-align: center; }
+  .house.across { border-color: #2c3456; }
+  .house.asleep { background: #111528; }
+  .window { width: 34px; height: 26px; margin: 16px auto 6px; border: 2px solid #3a4670; background: #111528; position: relative; }
+  .house.in .window { background: #f5d77a; }
+  .house.in .window .head { display: block; }
+  .window .head { display: none; position: absolute; left: 5px; top: 3px; width: 20px; height: 20px; }
+  .label { font-size: 12px; }
+  .road { margin: 10px 0; background: #161b33; border-top: 2px solid #3a4670; border-bottom: 2px solid #3a4670; padding: 6px 0; }
+  .lane { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; height: 46px; }
+  .centre { height: 2px; background-image: repeating-linear-gradient(90deg, #ff8fc8 0 18px, transparent 18px 36px); margin: 4px 0; }
+  .spot { position: relative; display: flex; justify-content: center; align-items: center; }
+  .head { border-radius: 50%; position: relative; }
+  .spot .head { width: 36px; height: 36px; }
+  .head.ringed::after { content: ""; position: absolute; left: -22%; top: 40%; width: 144%; height: 18%; border: 2px solid #cbbf8a; border-radius: 50%; }
+  .head.tilted { transform: rotate(90deg); }
+  .bubble { position: absolute; top: -14px; right: 6px; background: #fff; color: #222; border-radius: 12px; padding: 0 7px; font-size: 16px; }
+  .log { margin-top: 14px; line-height: 1.6; max-width: 620px; }
+  .log .clash { color: #ff8fc8; }
+  .log .time { color: #8890b0; }
 </style>
 </head>
 <body>
-<h1>auto-talk</h1>
-<div class="note">Pick 5 of the 10 neighbours for your side, then watch their day.</div>
+<h1>auto-talk <span class="clock" id="clock"></span></h1>
+<div class="note">Pick 5 of the 10 neighbours for your side. The street runs on your clock: neighbours sleep, stay in, or wander the road and meet.</div>
 <div class="pick" id="pick"></div>
-<button id="play">Play the day</button><button id="next">Next day</button>
-<span class="note" id="day"></span>
 <div class="town">
   <div class="side">across the street</div>
   <div class="row" id="across"></div>
-  <div class="road"></div>
-  <div class="row" id="street"></div>
+  <div class="road">
+    <div class="lane" id="laneAcross"></div>
+    <div class="centre"></div>
+    <div class="lane" id="laneMine"></div>
+  </div>
+  <div class="row" id="mine"></div>
   <div class="side">your side</div>
 </div>
 <div class="log" id="log"></div>
 
 <script type="module">
-import { PLANETS, playDay } from './sim.js';
+import { PLANETS, streetHour } from './sim.js';
 
 const KEY = 'auto-talk';
-const load = () => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch { return {}; } };
-const save = (s) => { try { localStorage.setItem(KEY, JSON.stringify(s)); } catch {} };
-
-const today = () => new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD, local time
-const addDays = (ymd, n) => { const d = new Date(ymd + 'T12:00:00'); d.setDate(d.getDate() + n); return d.toLocaleDateString('en-CA'); };
-
-let state = load();
-state.day ||= today();
-state.residents ||= ['saturn', 'uranus', 'earth', 'neptune', 'jupiter'];
-state.thinking ||= [];
+let saved = {};
+try { saved = JSON.parse(localStorage.getItem(KEY)) || {}; } catch {}
+let mine = Array.isArray(saved.residents) && saved.residents.length === 5 ? saved.residents : ['saturn', 'uranus', 'earth', 'neptune', 'jupiter'];
+const ids = Object.keys(PLANETS);
+const others = () => ids.filter((id) => !mine.includes(id));
 
 const pick = document.getElementById('pick');
 for (const [id, p] of Object.entries(PLANETS)) {
@@ -68,74 +69,61 @@ for (const [id, p] of Object.entries(PLANETS)) {
   pick.append(l);
 }
 const boxes = [...pick.querySelectorAll('input')];
-const syncBoxes = () => {
-  for (const b of boxes) { b.checked = state.residents.includes(b.value); b.disabled = !b.checked && state.residents.length >= 5; }
-};
+const syncBoxes = () => { for (const b of boxes) { b.checked = mine.includes(b.value); b.disabled = !b.checked && mine.length >= 5; } };
 pick.addEventListener('change', () => {
-  state.residents = boxes.filter((b) => b.checked).map((b) => b.value);
-  state.thinking = [];
-  save(state); syncBoxes(); drawStreet();
+  mine = boxes.filter((b) => b.checked).map((b) => b.value);
+  if (mine.length === 5) { try { localStorage.setItem(KEY, JSON.stringify({ residents: mine })); } catch {} }
+  syncBoxes(); draw();
 });
 
-const street = document.getElementById('street');
-const across = document.getElementById('across');
-const houses = {};
-function drawStreet() {
-  street.innerHTML = '';
-  across.innerHTML = '';
-  // Across the street: the 5 you didn't pick. They don't take part in the day yet.
-  const others = Object.keys(PLANETS).filter((id) => !state.residents.includes(id));
-  for (const id of others) {
-    const h = document.createElement('div');
-    const p = PLANETS[id];
-    h.className = 'house across';
-    h.innerHTML = `<div class="head${id === 'saturn' ? ' ringed' : ''}${id === 'uranus' ? ' tilted' : ''}" style="background:${p.color}"></div><div class="label">${p.name}<br>${p.type}</div>`;
-    across.append(h);
+const head = (id) => `<div class="head${id === 'saturn' ? ' ringed' : ''}${id === 'uranus' ? ' tilted' : ''}" style="background:${PLANETS[id].color}"></div>`;
+const hhmm = (h, m) => `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+const WORD = { asleep: 'asleep 💤', in: 'home', out: 'out' };
+
+function draw() {
+  const now = new Date();
+  const date = now.toLocaleDateString('en-CA'), h = now.getHours(), m = now.getMinutes();
+  document.getElementById('clock').textContent = hhmm(h, m);
+  if (mine.length !== 5) { document.getElementById('log').textContent = 'Pick 5 neighbours for your side.'; return; }
+
+  const street = streetHour(ids, date, h, m);
+  const talking = street.meetings.filter((x) => x.minute === m); // the meeting happening this minute, if any
+  const bubbleFor = {};
+  for (const x of talking) { bubbleFor[x.a] = x.emote; bubbleFor[x.b] = x.emote; }
+
+  const fill = (rowId, laneId, list, across) => {
+    const row = document.getElementById(rowId), lane = document.getElementById(laneId);
+    row.innerHTML = ''; lane.innerHTML = '';
+    for (const id of list) {
+      const where = street.where[id];
+      const sulk = street.sulking.includes(id) && where === 'in';
+      const house = document.createElement('div');
+      house.className = `house ${where}${across ? ' across' : ''}`;
+      house.innerHTML = `<div class="window">${head(id)}</div><div class="label">${PLANETS[id].name}<br>${PLANETS[id].type}<br>${sulk ? 'thinking…' : WORD[where]}</div>`;
+      row.append(house);
+      const spot = document.createElement('div');
+      spot.className = 'spot';
+      if (where === 'out') spot.innerHTML = head(id) + (bubbleFor[id] ? `<div class="bubble">${bubbleFor[id]}</div>` : '');
+      lane.append(spot);
+    }
+  };
+  fill('across', 'laneAcross', others(), true);
+  fill('mine', 'laneMine', mine, false);
+
+  const log = document.getElementById('log');
+  const recent = street.meetings.slice(-8).reverse();
+  log.innerHTML = recent.length ? '' : 'Nobody has met yet this hour.';
+  for (const x of recent) {
+    const line = document.createElement('div');
+    line.className = x.score === 1 ? 'clash' : '';
+    line.innerHTML = `<span class="time">${hhmm(h, x.minute)}</span> ${x.emote} ${PLANETS[x.a].name} and ${PLANETS[x.b].name} ${x.reason} (${PLANETS[x.a].type} + ${PLANETS[x.b].type} = ${x.score})`
+      + (x.sulks ? `. ${PLANETS[x.sulks].name} goes home to think.` : '');
+    log.append(line);
   }
-  for (const id of state.residents) {
-    const p = PLANETS[id];
-    const h = document.createElement('div');
-    h.className = 'house' + (state.thinking.includes(id) ? ' inside' : '');
-    h.innerHTML = `<div class="head${id === 'saturn' ? ' ringed' : ''}${id === 'uranus' ? ' tilted' : ''}" style="background:${p.color}"></div>
-      <div class="label">${p.name}<br>${state.thinking.includes(id) ? 'thinking…' : p.type}</div><div class="bubble"></div>`;
-    street.append(h); houses[id] = h;
-  }
-  document.getElementById('day').textContent = state.day;
 }
 
-const log = document.getElementById('log');
-const wait = (ms) => new Promise((r) => setTimeout(r, ms));
-const playBtn = document.getElementById('play'), nextBtn = document.getElementById('next');
-
-playBtn.onclick = async () => {
-  if (state.residents.length !== 5) { log.textContent = 'Pick 5 neighbours first.'; return; }
-  playBtn.disabled = nextBtn.disabled = true;
-  drawStreet(); log.innerHTML = '';
-  const { meetings, thinking } = playDay(state.day, state.residents, state.thinking);
-  if (!meetings.length) log.textContent = 'Nobody came out today.';
-  for (const m of meetings) {
-    for (const id of [m.a, m.b]) { houses[id].classList.add('talking'); houses[id].querySelector('.bubble').textContent = m.emote; }
-    const line = document.createElement('div');
-    line.className = m.score === 1 ? 'clash' : '';
-    line.textContent = `${PLANETS[m.a].name} and ${PLANETS[m.b].name} ${m.reason} (${PLANETS[m.a].type} + ${PLANETS[m.b].type} = ${m.score})`
-      + (m.sulks ? `. ${PLANETS[m.sulks].name} will stay in tomorrow.` : '');
-    log.append(line);
-    await wait(1400);
-    for (const id of [m.a, m.b]) houses[id].classList.remove('talking');
-    await wait(300);
-  }
-  state.pending = thinking; save(state);
-  playBtn.disabled = nextBtn.disabled = false;
-};
-
-nextBtn.onclick = () => {
-  state.day = addDays(state.day, 1);
-  state.thinking = state.pending || [];
-  delete state.pending;
-  save(state); drawStreet(); log.innerHTML = '';
-};
-
-syncBoxes(); drawStreet();
+syncBoxes(); draw();
+setInterval(draw, 10000);
 </script>
 </body>
 </html>

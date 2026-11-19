@@ -39,9 +39,23 @@ export const OUTCOME = {
   1: { emote: '💢', reason: 'clashed' },
 };
 
-export const MEETINGS_A_DAY = 10;
+// Hours asleep, local time [fall asleep, wake up]. New Leaf's hours (Nookipedia, personality pages);
+// SLY and TSUNDERE are guesses (not found).
+export const SLEEP = {
+  PRIM: [0, 6], JOCK: [0, 7], DREAMY: [23, 9], PEPPY: [1, 9],
+  HAUGHTY: [2, 9.5], GRUFF: [4, 10], SLY: [2, 9], TSUNDERE: [1, 8],
+};
+export function isAsleep(type, hour) {
+  const [a, b] = SLEEP[type];
+  return a < b ? hour >= a && hour < b : hour >= a || hour < b;
+}
 
-// Small seeded random (mulberry32) from a string such as "2026-11-19".
+export const OUT_CHANCE = 0.6;     // awake neighbours outside for an hour
+export const MEET_CHANCE = 0.5;    // a meeting in a given minute, when 2 or more are out
+export const SULK_MINUTES = 15;    // after a clash, one of the two stays in this long
+export const PAIR_REST = 15;       // a pair who just met don't meet again for this long
+
+// Small seeded random (mulberry32) from a string.
 function rng(seedText) {
   let h = 1779033703 ^ seedText.length;
   for (let i = 0; i < seedText.length; i++) {
@@ -58,27 +72,45 @@ function rng(seedText) {
   };
 }
 
-// One day on the street.
-// residents: 5 planet ids. thinking: ids who stay in today (they clashed yesterday).
-// Returns the meetings in order and who stays in tomorrow.
-export function playDay(seedText, residents, thinking = []) {
-  const rand = rng(seedText + '|' + residents.join(','));
-  const out = residents.filter((id) => !thinking.includes(id));
+// Where a neighbour is at a given time: asleep, in (awake at home) or out (wandering the road).
+// Out or in is decided once per hour, the same for everyone who opens the page.
+export function whereIs(id, date, hour, minute) {
+  if (isAsleep(PLANETS[id].type, hour + minute / 60)) return 'asleep';
+  return rng(`${date}|${hour}|${id}`)() < OUT_CHANCE ? 'out' : 'in';
+}
+
+// The street's hour so far: minute by minute, neighbours who are out may meet.
+// After a clash one of the two sulks inside for SULK_MINUTES ("thinking", like New Leaf).
+// A pair who just met won't meet again for PAIR_REST minutes.
+// ids: all 10 neighbours on the street. Returns the meetings, who's sulking, and where everyone is now.
+export function streetHour(ids, date, hour, nowMinute) {
+  const sulkUntil = {};
+  const lastMet = {};
   const meetings = [];
-  const tomorrow = new Set();
-  if (out.length < 2) return { meetings, thinking: [] };
-  for (let i = 0; i < MEETINGS_A_DAY; i++) {
-    const a = out[Math.floor(rand() * out.length)];
-    let b = a;
-    while (b === a) b = out[Math.floor(rand() * out.length)];
-    const score = points(PLANETS[a].type, PLANETS[b].type);
-    const meeting = { a, b, score, ...OUTCOME[score] };
-    if (score === 1) {
-      // After a clash one of the two sulks and stays in tomorrow ("thinking", like New Leaf).
-      meeting.sulks = rand() < 0.5 ? a : b;
-      tomorrow.add(meeting.sulks);
+  const sulky = (id, m) => sulkUntil[id] !== undefined && m < sulkUntil[id];
+  for (let m = 0; m <= nowMinute; m++) {
+    const out = ids.filter((id) => !sulky(id, m) && whereIs(id, date, hour, m) === 'out');
+    const rand = rng(`${date}|${hour}|${m}|meet`);
+    if (out.length < 2 || rand() >= MEET_CHANCE) continue;
+    const pairs = [];
+    for (let i = 0; i < out.length; i++) for (let j = i + 1; j < out.length; j++) {
+      const key = out[i] + '+' + out[j];
+      if (lastMet[key] === undefined || m - lastMet[key] >= PAIR_REST) pairs.push([out[i], out[j], key]);
     }
+    if (!pairs.length) continue;
+    const [x, y, key] = pairs[Math.floor(rand() * pairs.length)];
+    const [a, b] = rand() < 0.5 ? [x, y] : [y, x];
+    lastMet[key] = m;
+    const score = points(PLANETS[a].type, PLANETS[b].type);
+    const meeting = { minute: m, a, b, score, ...OUTCOME[score] };
+    if (score === 1) { meeting.sulks = rand() < 0.5 ? a : b; sulkUntil[meeting.sulks] = m + SULK_MINUTES; }
     meetings.push(meeting);
   }
-  return { meetings, thinking: [...tomorrow] };
+  const where = {};
+  const sulking = [];
+  for (const id of ids) {
+    where[id] = whereIs(id, date, hour, nowMinute);
+    if (where[id] !== 'asleep' && sulky(id, nowMinute)) { where[id] = 'in'; sulking.push(id); }
+  }
+  return { meetings, sulking, where };
 }
