@@ -117,10 +117,22 @@ function draw() {
   fill('across', others(), true);
   fill('mine', mine, false);
 
-  // Out on the road: wander to a new spot every 5 seconds; a pair who are meeting stand together.
-  const W = road.clientWidth, H = road.clientHeight;
-  let meetX, meetY;
-  if (meeting) { const r = seeded(`${date}|${h}|${m}|spot`); meetX = 40 + r() * (W - 120); meetY = 30 + r() * (H - 60); }
+  // Out on the road: the road is a grid of spots, one neighbour per spot, so nobody piles up. Every 5 seconds each
+  // wanderer walks to a different free spot; a meeting pair hold two spots side by side for their minute.
+  const W = road.clientWidth, H = road.clientHeight, COLS = 10, ROWS = 3;
+  const spotXY = (c, r) => [(c + 0.5) * W / COLS, (r + 0.5) * H / ROWS];
+  const taken = new Set();
+  let meetCell;
+  if (meeting) {
+    const r = seeded(`${date}|${h}|${m}|spot`);
+    meetCell = [Math.floor(r() * (COLS - 1)), Math.floor(r() * ROWS)];
+    taken.add(meetCell.join()); taken.add([meetCell[0] + 1, meetCell[1]].join());
+  }
+  const free = [];
+  for (let c = 0; c < COLS; c++) for (let r = 0; r < ROWS; r++) if (!taken.has(c + ',' + r)) free.push([c, r]);
+  const shuffle = seeded(`${date}|${h}|${m}|${slot}|walk`);
+  for (let i = free.length - 1; i > 0; i--) { const j = Math.floor(shuffle() * (i + 1)); [free[i], free[j]] = [free[j], free[i]]; }
+  let next = 0;
   for (const id of ids) {
     const w = walker(id);
     if (street.where[id] !== 'out') { w.style.display = 'none'; continue; }
@@ -128,12 +140,12 @@ function draw() {
     const bubble = w.querySelector('.bubble');
     let x, y, text = '';
     if (meeting && (id === meeting.a || id === meeting.b)) {
-      x = meetX + (id === meeting.a ? 0 : 44); y = meetY;
+      [x, y] = spotXY(meetCell[0] + (id === meeting.a ? 0 : 1), meetCell[1]);
       if (sec >= 40) text = meeting.emote;
       else if ((slot % 2 === 0) === (id === meeting.a)) text = TALK[(slot + m) % TALK.length];
     } else {
       const r = seeded(`${date}|${h}|${m}|${slot}|${id}`);
-      x = 20 + r() * (W - 40); y = 20 + r() * (H - 40);
+      [x, y] = spotXY(...free[next++]);
       if (r() < 0.12) text = IDLE[Math.floor(r() * IDLE.length)];
     }
     w.style.left = x + 'px'; w.style.top = y + 'px';
