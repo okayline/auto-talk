@@ -58,6 +58,7 @@ export const OUT_CHANCE = 0.6;     // awake neighbours outside for an hour
 export const MEET_CHANCE = 0.5;    // a meeting in a given minute, when 2 or more are out
 
 // Small seeded random (mulberry32) from a string.
+export function seeded(seedText) { return rng(seedText); }
 function rng(seedText) {
   let h = 1779033703 ^ seedText.length;
   for (let i = 0; i < seedText.length; i++) {

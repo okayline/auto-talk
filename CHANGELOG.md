@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.6 (Nov 19, 2026)
+- Added: neighbours who are out wander all over the road, stepping to a new spot every few seconds. Two who are meeting walk together and trade speech bubbles, then show how it ended. Others out on the road now and then show a small emote.
+- Removed: the list of meetings under the street, and standing only in front of their own house.
+
 ## v0.5 (Nov 19, 2026)
 - Changed: a meeting now ends happy, sad or angry, as villager talks do in Animal Crossing.
 - Removed: rules that weren't from Animal Crossing: the meeting labels, going home to think after an angry talk, the rest between two neighbours meeting again, and the guessed sleep hours for SLY and TSUNDERE (they stay awake until the real hours are found).

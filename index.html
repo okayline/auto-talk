@@ -21,18 +21,14 @@
   .house.in .window .head { display: block; }
   .window .head { display: none; position: absolute; left: 5px; top: 3px; width: 20px; height: 20px; }
   .label { font-size: 12px; }
-  .road { margin: 10px 0; background: #161b33; border-top: 2px solid #3a4670; border-bottom: 2px solid #3a4670; padding: 6px 0; }
-  .lane { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; height: 46px; }
-  .centre { height: 2px; background-image: repeating-linear-gradient(90deg, #ff8fc8 0 18px, transparent 18px 36px); margin: 4px 0; }
-  .spot { position: relative; display: flex; justify-content: center; align-items: center; }
+  .road { margin: 10px 0; background: #161b33; border-top: 2px solid #3a4670; border-bottom: 2px solid #3a4670; height: 120px; position: relative; overflow: visible; }
+  .centre { position: absolute; left: 0; right: 0; top: 59px; height: 2px; background-image: repeating-linear-gradient(90deg, #ff8fc8 0 18px, transparent 18px 36px); }
+  .walker { position: absolute; width: 36px; height: 36px; margin: -18px 0 0 -18px; transition: left 4.5s ease-in-out, top 4.5s ease-in-out; }
   .head { border-radius: 50%; position: relative; }
-  .spot .head { width: 36px; height: 36px; }
+  .walker .head { width: 36px; height: 36px; }
   .head.ringed::after { content: ""; position: absolute; left: -22%; top: 40%; width: 144%; height: 18%; border: 2px solid #cbbf8a; border-radius: 50%; }
   .head.tilted { transform: rotate(90deg); }
-  .bubble { position: absolute; top: -14px; right: 6px; background: #fff; color: #222; border-radius: 12px; padding: 0 7px; font-size: 16px; }
-  .log { margin-top: 14px; line-height: 1.6; max-width: 620px; }
-  .log .clash { color: #ff8fc8; }
-  .log .time { color: #8890b0; }
+  .bubble { position: absolute; top: -20px; left: 22px; white-space: nowrap; background: #fff; color: #222; border-radius: 12px; padding: 0 7px; font-size: 16px; }
 </style>
 </head>
 <body>
@@ -42,18 +38,14 @@
 <div class="town">
   <div class="side">across the street</div>
   <div class="row" id="across"></div>
-  <div class="road">
-    <div class="lane" id="laneAcross"></div>
-    <div class="centre"></div>
-    <div class="lane" id="laneMine"></div>
-  </div>
+  <div class="road" id="road"><div class="centre"></div></div>
   <div class="row" id="mine"></div>
   <div class="side">your side</div>
 </div>
-<div class="log" id="log"></div>
+<div class="note" id="msg"></div>
 
 <script type="module">
-import { PLANETS, streetHour } from './sim.js';
+import { PLANETS, streetHour, seeded } from './sim.js';
 
 const KEY = 'auto-talk';
 let saved = {};
@@ -80,48 +72,78 @@ const head = (id) => `<div class="head${id === 'saturn' ? ' ringed' : ''}${id ==
 const hhmm = (h, m) => `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 const WORD = { asleep: 'asleep 💤', in: 'home', out: 'out' };
 
+// Bubbles. While two talk (their meeting minute): speech bubbles back and forth, then how it ended for the last
+// 20 seconds. Animal Crossing villagers show symbols over their heads while they talk; the exact sequence is ours.
+// Anyone else out on the road now and then shows a small emote (ours: Animal Crossing villagers emote on their own,
+// the set and how often are ours).
+const TALK = ['💬', '…', '💬', '❗', '💬', '❓', '💬', '…'];
+const IDLE = ['♪', '❗', '❓', '💭', '♪'];
+
+const road = document.getElementById('road');
+const walkers = {};
+function walker(id) {
+  if (!walkers[id]) {
+    const w = document.createElement('div');
+    w.className = 'walker';
+    w.innerHTML = head(id) + '<div class="bubble"></div>';
+    road.append(w);
+    walkers[id] = w;
+  }
+  return walkers[id];
+}
+
 function draw() {
   const now = new Date();
-  const date = now.toLocaleDateString('en-CA'), h = now.getHours(), m = now.getMinutes();
+  const date = now.toLocaleDateString('en-CA'), h = now.getHours(), m = now.getMinutes(), sec = now.getSeconds();
+  const slot = Math.floor(sec / 5); // a new wander step and bubble every 5 seconds
   document.getElementById('clock').textContent = hhmm(h, m);
-  if (mine.length !== 5) { document.getElementById('log').textContent = 'Pick 5 neighbours for your side.'; return; }
+  document.getElementById('msg').textContent = mine.length === 5 ? '' : 'Pick 5 neighbours for your side.';
+  if (mine.length !== 5) return;
 
   const street = streetHour(ids, date, h, m);
-  const talking = street.meetings.filter((x) => x.minute === m); // the meeting happening this minute, if any
-  const bubbleFor = {};
-  for (const x of talking) { bubbleFor[x.a] = x.emote; bubbleFor[x.b] = x.emote; }
+  const meeting = street.meetings.find((x) => x.minute === m);
 
-  const fill = (rowId, laneId, list, across) => {
-    const row = document.getElementById(rowId), lane = document.getElementById(laneId);
-    row.innerHTML = ''; lane.innerHTML = '';
+  const fill = (rowId, list, across) => {
+    const row = document.getElementById(rowId);
+    row.innerHTML = '';
     for (const id of list) {
       const where = street.where[id];
       const house = document.createElement('div');
       house.className = `house ${where}${across ? ' across' : ''}`;
       house.innerHTML = `<div class="window">${head(id)}</div><div class="label">${PLANETS[id].name}<br>${PLANETS[id].type}<br>${WORD[where]}</div>`;
       row.append(house);
-      const spot = document.createElement('div');
-      spot.className = 'spot';
-      if (where === 'out') spot.innerHTML = head(id) + (bubbleFor[id] ? `<div class="bubble">${bubbleFor[id]}</div>` : '');
-      lane.append(spot);
     }
   };
-  fill('across', 'laneAcross', others(), true);
-  fill('mine', 'laneMine', mine, false);
+  fill('across', others(), true);
+  fill('mine', mine, false);
 
-  const log = document.getElementById('log');
-  const recent = street.meetings.slice(-8).reverse();
-  log.innerHTML = recent.length ? '' : 'Nobody has met yet this hour.';
-  for (const x of recent) {
-    const line = document.createElement('div');
-    line.className = x.ends === 'angry' ? 'clash' : '';
-    line.innerHTML = `<span class="time">${hhmm(h, x.minute)}</span> ${x.emote} ${PLANETS[x.a].name} and ${PLANETS[x.b].name}: ${x.ends} (${PLANETS[x.a].type} + ${PLANETS[x.b].type} = ${x.score})`;
-    log.append(line);
+  // Out on the road: wander to a new spot every 5 seconds; a pair who are meeting stand together.
+  const W = road.clientWidth, H = road.clientHeight;
+  let meetX, meetY;
+  if (meeting) { const r = seeded(`${date}|${h}|${m}|spot`); meetX = 40 + r() * (W - 120); meetY = 30 + r() * (H - 60); }
+  for (const id of ids) {
+    const w = walker(id);
+    if (street.where[id] !== 'out') { w.style.display = 'none'; continue; }
+    w.style.display = '';
+    const bubble = w.querySelector('.bubble');
+    let x, y, text = '';
+    if (meeting && (id === meeting.a || id === meeting.b)) {
+      x = meetX + (id === meeting.a ? 0 : 44); y = meetY;
+      if (sec >= 40) text = meeting.emote;
+      else if ((slot % 2 === 0) === (id === meeting.a)) text = TALK[(slot + m) % TALK.length];
+    } else {
+      const r = seeded(`${date}|${h}|${m}|${slot}|${id}`);
+      x = 20 + r() * (W - 40); y = 20 + r() * (H - 40);
+      if (r() < 0.12) text = IDLE[Math.floor(r() * IDLE.length)];
+    }
+    w.style.left = x + 'px'; w.style.top = y + 'px';
+    bubble.textContent = text;
+    bubble.style.display = text ? '' : 'none';
   }
 }
 
 syncBoxes(); draw();
-setInterval(draw, 10000);
+setInterval(draw, 5000);
 </script>
 </body>
 </html>
