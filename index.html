@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>auto-talk</title>
+<style>
+  body { background: #0d1022; color: #e8e8f0; font-family: "Courier New", monospace; margin: 0; padding: 20px; }
+  h1 { color: #ff8fc8; font-size: 20px; margin: 0 0 12px; }
+  .pick label { display: inline-block; margin: 4px 10px 4px 0; cursor: pointer; }
+  .street { display: flex; gap: 14px; margin: 24px 0 8px; flex-wrap: wrap; }
+  .house { width: 110px; height: 130px; background: #1d2742; border: 2px solid #3a4670; position: relative; text-align: center; }
+  .house.inside { opacity: 0.45; }
+  .head { width: 56px; height: 56px; border-radius: 50%; margin: 26px auto 6px; position: relative; transition: transform .2s; }
+  .head.ringed::after { content: ""; position: absolute; left: -16px; top: 22px; width: 88px; height: 12px; border: 3px solid #cbbf8a; border-radius: 50%; }
+  .head.tilted { transform: rotate(90deg); }
+  .house.talking .head { transform: scale(1.12); }
+  .house.talking .head.tilted { transform: rotate(90deg) scale(1.12); }
+  .label { font-size: 12px; }
+  .bubble { position: absolute; top: -18px; right: -8px; background: #fff; color: #222; border-radius: 12px; padding: 2px 8px; font-size: 18px; display: none; }
+  .house.talking .bubble { display: block; }
+  .log { margin-top: 18px; line-height: 1.6; min-height: 1.6em; }
+  .log .clash { color: #ff8fc8; }
+  button { font-family: inherit; background: #ff8fc8; color: #0d1022; border: 0; padding: 6px 12px; cursor: pointer; margin-right: 8px; }
+  button:disabled { opacity: .4; cursor: default; }
+  .note { color: #8890b0; font-size: 12px; }
+</style>
+</head>
+<body>
+<h1>auto-talk</h1>
+<div class="note">Pick 5 neighbours for the street, then watch their day.</div>
+<div class="pick" id="pick"></div>
+<button id="play">Play the day</button><button id="next">Next day</button>
+<span class="note" id="day"></span>
+<div class="street" id="street"></div>
+<div class="log" id="log"></div>
+
+<script type="module">
+import { PLANETS, playDay } from './sim.js';
+
+const KEY = 'auto-talk';
+const load = () => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch { return {}; } };
+const save = (s) => { try { localStorage.setItem(KEY, JSON.stringify(s)); } catch {} };
+
+const today = () => new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD, local time
+const addDays = (ymd, n) => { const d = new Date(ymd + 'T12:00:00'); d.setDate(d.getDate() + n); return d.toLocaleDateString('en-CA'); };
+
+let state = load();
+state.day ||= today();
+state.residents ||= ['saturn', 'uranus', 'earth', 'neptune', 'jupiter'];
+state.thinking ||= [];
+
+const pick = document.getElementById('pick');
+for (const [id, p] of Object.entries(PLANETS)) {
+  const l = document.createElement('label');
+  l.innerHTML = `<input type="checkbox" value="${id}"> ${p.name} (${p.type})`;
+  pick.append(l);
+}
+const boxes = [...pick.querySelectorAll('input')];
+const syncBoxes = () => {
+  for (const b of boxes) { b.checked = state.residents.includes(b.value); b.disabled = !b.checked && state.residents.length >= 5; }
+};
+pick.addEventListener('change', () => {
+  state.residents = boxes.filter((b) => b.checked).map((b) => b.value);
+  state.thinking = [];
+  save(state); syncBoxes(); drawStreet();
+});
+
+const street = document.getElementById('street');
+const houses = {};
+function drawStreet() {
+  street.innerHTML = '';
+  for (const id of state.residents) {
+    const p = PLANETS[id];
+    const h = document.createElement('div');
+    h.className = 'house' + (state.thinking.includes(id) ? ' inside' : '');
+    h.innerHTML = `<div class="head${id === 'saturn' ? ' ringed' : ''}${id === 'uranus' ? ' tilted' : ''}" style="background:${p.color}"></div>
+      <div class="label">${p.name}<br>${state.thinking.includes(id) ? 'thinking…' : p.type}</div><div class="bubble"></div>`;
+    street.append(h); houses[id] = h;
+  }
+  document.getElementById('day').textContent = state.day;
+}
+
+const log = document.getElementById('log');
+const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+const playBtn = document.getElementById('play'), nextBtn = document.getElementById('next');
+
+playBtn.onclick = async () => {
+  if (state.residents.length !== 5) { log.textContent = 'Pick 5 neighbours first.'; return; }
+  playBtn.disabled = nextBtn.disabled = true;
+  drawStreet(); log.innerHTML = '';
+  const { meetings, thinking } = playDay(state.day, state.residents, state.thinking);
+  if (!meetings.length) log.textContent = 'Nobody came out today.';
+  for (const m of meetings) {
+    for (const id of [m.a, m.b]) { houses[id].classList.add('talking'); houses[id].querySelector('.bubble').textContent = m.emote; }
+    const line = document.createElement('div');
+    line.className = m.score === 1 ? 'clash' : '';
+    line.textContent = `${PLANETS[m.a].name} and ${PLANETS[m.b].name} ${m.reason} (${PLANETS[m.a].type} + ${PLANETS[m.b].type} = ${m.score})`
+      + (m.sulks ? `. ${PLANETS[m.sulks].name} will stay in tomorrow.` : '');
+    log.append(line);
+    await wait(1400);
+    for (const id of [m.a, m.b]) houses[id].classList.remove('talking');
+    await wait(300);
+  }
+  state.pending = thinking; save(state);
+  playBtn.disabled = nextBtn.disabled = false;
+};
+
+nextBtn.onclick = () => {
+  state.day = addDays(state.day, 1);
+  state.thinking = state.pending || [];
+  delete state.pending;
+  save(state); drawStreet(); log.innerHTML = '';
+};
+
+syncBoxes(); drawStreet();
+</script>
+</body>
+</html>
