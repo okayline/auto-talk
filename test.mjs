@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { PLANETS, points, isAsleep, whereIs, streetHour, SULK_MINUTES, PAIR_REST } from './sim.js';
+import { PLANETS, points, isAsleep, whereIs, streetHour } from './sim.js';
 
 const types = Object.values(PLANETS).map((p) => p.type);
 for (const a of types) for (const b of types) assert.equal(points(a, b), points(b, a), `${a}/${b} symmetric`);
@@ -16,19 +16,17 @@ const ids = Object.keys(PLANETS);
 const day = '2026-11-19';
 assert.deepEqual(streetHour(ids, day, 14, 59), streetHour(ids, day, 14, 59), 'same time, same street');
 
-let meetings = 0, clashes = 0;
+assert.ok(!isAsleep('SLY', 4) && !isAsleep('TSUNDERE', 4), 'no sleep hours found for these yet');
+
+let meetings = 0, angry = 0;
 for (let h = 0; h < 24; h++) {
   const s = streetHour(ids, day, h, 59);
   meetings += s.meetings.length;
   for (const m of s.meetings) {
     assert.notEqual(m.a, m.b);
     for (const id of [m.a, m.b]) assert.equal(whereIs(id, day, h, m.minute), 'out', 'only neighbours who are out meet');
-    assert.ok(!s.meetings.some((x) => x !== m && x.minute > m.minute && x.minute < m.minute + PAIR_REST && [x.a, x.b].sort().join() === [m.a, m.b].sort().join()), 'a pair rests');
-    if (m.sulks) {
-      clashes++;
-      assert.ok(!s.meetings.some((x) => x.minute > m.minute && x.minute < m.minute + SULK_MINUTES && (x.a === m.sulks || x.b === m.sulks)), 'a sulker stays in');
-    }
+    if (m.ends === 'angry') angry++;
   }
 }
 assert.ok(meetings > 100, `a lively day (${meetings} meetings)`);
-console.log(`ok (${meetings} meetings, ${clashes} clashes on ${day})`);
+console.log(`ok (${meetings} meetings, ${angry} angry on ${day})`);

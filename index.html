@@ -96,10 +96,9 @@ function draw() {
     row.innerHTML = ''; lane.innerHTML = '';
     for (const id of list) {
       const where = street.where[id];
-      const sulk = street.sulking.includes(id) && where === 'in';
       const house = document.createElement('div');
       house.className = `house ${where}${across ? ' across' : ''}`;
-      house.innerHTML = `<div class="window">${head(id)}</div><div class="label">${PLANETS[id].name}<br>${PLANETS[id].type}<br>${sulk ? 'thinking…' : WORD[where]}</div>`;
+      house.innerHTML = `<div class="window">${head(id)}</div><div class="label">${PLANETS[id].name}<br>${PLANETS[id].type}<br>${WORD[where]}</div>`;
       row.append(house);
       const spot = document.createElement('div');
       spot.className = 'spot';
@@ -115,9 +114,8 @@ function draw() {
   log.innerHTML = recent.length ? '' : 'Nobody has met yet this hour.';
   for (const x of recent) {
     const line = document.createElement('div');
-    line.className = x.score === 1 ? 'clash' : '';
-    line.innerHTML = `<span class="time">${hhmm(h, x.minute)}</span> ${x.emote} ${PLANETS[x.a].name} and ${PLANETS[x.b].name} ${x.reason} (${PLANETS[x.a].type} + ${PLANETS[x.b].type} = ${x.score})`
-      + (x.sulks ? `. ${PLANETS[x.sulks].name} goes home to think.` : '');
+    line.className = x.ends === 'angry' ? 'clash' : '';
+    line.innerHTML = `<span class="time">${hhmm(h, x.minute)}</span> ${x.emote} ${PLANETS[x.a].name} and ${PLANETS[x.b].name}: ${x.ends} (${PLANETS[x.a].type} + ${PLANETS[x.b].type} = ${x.score})`;
     log.append(line);
   }
 }

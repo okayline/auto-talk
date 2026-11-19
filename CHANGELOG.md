@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.5 (Nov 19, 2026)
+- Changed: a meeting now ends happy, sad or angry, as villager talks do in Animal Crossing.
+- Removed: rules that weren't from Animal Crossing: the meeting labels, going home to think after an angry talk, the rest between two neighbours meeting again, and the guessed sleep hours for SLY and TSUNDERE (they stay awake until the real hours are found).
+
 ## v0.4 (Nov 19, 2026)
 - Added: the street runs on your real clock. Neighbours sleep at their personality's hours, and when awake are home (lit window) or out on the road, decided each hour. Neighbours who are out meet every minute or two, with emote bubbles and a log of this hour's meetings. After a clash one of the two goes home to think for a while, and a pair who just met don't meet again straight away. The page updates itself.
 - Removed: the "Play the day" and "Next day" buttons and the once-a-day run of 10 meetings.
