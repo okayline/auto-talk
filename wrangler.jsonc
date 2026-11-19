@@ -1,0 +1,6 @@
+{
+  // The Worker's name must match the one in the Cloudflare dashboard (talk.88x31.app).
+  "name": "auto-talk",
+  "compatibility_date": "2026-11-01",
+  "assets": { "directory": "./public" }
+}

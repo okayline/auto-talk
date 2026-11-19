@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.10 (Nov 19, 2026)
+- Added: Worker settings so the page is served at talk.88x31.app.
+- Removed: the page files from the top of the repo (moved into public/).
+
 ## v0.9 (Nov 19, 2026)
 - Added: the shared footer at the bottom right of the street, with the version number.
 - Removed: nothing.

@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { PLANETS, points, isAsleep, whereIs, streetHour } from './sim.js';
+import { PLANETS, points, isAsleep, whereIs, streetHour } from './public/sim.js';
 
 const types = Object.values(PLANETS).map((p) => p.type);
 for (const a of types) for (const b of types) assert.equal(points(a, b), points(b, a), `${a}/${b} symmetric`);
