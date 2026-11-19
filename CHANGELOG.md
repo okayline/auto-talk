@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.9 (Nov 19, 2026)
+- Added: the shared footer at the bottom right of the street, with the version number.
+- Removed: nothing.
+
 ## v0.8 (Nov 19, 2026)
 - Added: a New game button that opens a popup with the 10 planets and your 5 empty houses. Drag a planet into a house, or click a planet then a house; click a filled house to empty it. Move in closes the popup once all 5 are filled.
 - Removed: the checkboxes at the top.
