@@ -9,6 +9,7 @@
   h1 { color: #ff8fc8; font-size: 20px; margin: 0 0 12px; }
   button { font-family: inherit; background: #ff8fc8; color: #0d1022; border: 0; padding: 6px 12px; cursor: pointer; }
   button:disabled { opacity: .4; cursor: default; }
+  .topbar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
   .modal { position: fixed; inset: 0; z-index: 10; background: rgba(5, 7, 18, .8); display: none; align-items: center; justify-content: center; }
   .modal.open { display: flex; }
   .panel { background: #1d2742; border: 2px solid #ff8fc8; padding: 16px; max-width: 640px; width: calc(100% - 40px); }
@@ -24,42 +25,150 @@
   .slot.over { border-color: #ff8fc8; }
   .clock { font-size: 18px; color: #ff8fc8; margin-left: 4px; }
   .note { color: #8890b0; font-size: 12px; }
-  .town { margin: 20px 0 8px; max-width: 620px; display: flex; flex-direction: column; }
+
+  .town { margin: 14px 0 8px; max-width: 720px; display: flex; flex-direction: column; }
+
+  /* Twin Harmony Meters */
+  .meters { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+  .meter-box { background: #161b33; border: 2px solid #3a4670; padding: 8px 10px; }
+  .meter-head { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 6px; }
+  .meter-track { height: 10px; background: #0d1022; border: 1px solid #3a4670; position: relative; }
+  .meter-fill { height: 100%; width: 0%; transition: width .5s ease; }
+  .meter-fill.live { background: #f5d77a; }
+  .meter-fill.tend { background: #ff8fc8; }
+  .harmony-banner { display: none; margin-bottom: 10px; padding: 8px 12px; background: #1d2742; border: 2px solid #f5d77a; color: #f5d77a; font-size: 13px; text-align: center; }
+  .harmony-banner.aligned { display: block; }
+  .moment-log { font-size: 12px; color: #8890b0; margin-bottom: 8px; min-height: 16px; }
+
+  /* Astrology Houses */
   .row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
   .side { font-size: 11px; color: #8890b0; margin: 4px 0; }
-  .house { height: 120px; background: #1d2742; border: 2px solid #3a4670; position: relative; text-align: center; }
+  .house { height: 112px; background: #1d2742; border: 2px solid #3a4670; position: relative; text-align: center; }
   .house.across { border-color: #2c3456; }
   .house.asleep { background: #111528; }
-  .window { width: 34px; height: 26px; margin: 16px auto 6px; border: 2px solid #3a4670; background: #111528; position: relative; }
+  .window { width: 34px; height: 26px; margin: 12px auto 6px; border: 2px solid #3a4670; background: #111528; position: relative; }
   .house.in .window { background: #f5d77a; }
   .house.in .window .head { display: block; }
   .window .head { display: none; position: absolute; left: 5px; top: 3px; width: 20px; height: 20px; }
-  .label { font-size: 12px; }
-  .road { margin: 10px 0; background: #161b33; border-top: 2px solid #3a4670; border-bottom: 2px solid #3a4670; height: 120px; position: relative; overflow: visible; }
-  .centre { position: absolute; left: 0; right: 0; top: 59px; height: 2px; background-image: repeating-linear-gradient(90deg, #ff8fc8 0 18px, transparent 18px 36px); }
-  .walker { position: absolute; width: 36px; height: 36px; margin: -18px 0 0 -18px; transition: left 4.5s ease-in-out, top 4.5s ease-in-out; }
+  .label { font-size: 12px; line-height: 1.25; }
+
+  /* Bigger Solar System Wandering Stage */
+  .cosmos {
+    margin: 12px 0;
+    height: 300px;
+    position: relative;
+    overflow: hidden;
+    background:
+      radial-gradient(circle at 50% 50%, rgba(245, 215, 122, 0.14) 0%, rgba(245, 215, 122, 0.03) 26%, transparent 58%),
+      #0a0d1c;
+    border-top: 2px solid #3a4670;
+    border-bottom: 2px solid #3a4670;
+  }
+  .cosmos.aligned { border-color: #f5d77a; }
+  .sun {
+    position: absolute;
+    left: 50%; top: 50%;
+    width: 28px; height: 28px;
+    margin: -14px 0 0 -14px;
+    border-radius: 50%;
+    background: radial-gradient(circle, #fff3b8 0%, #f5d77a 55%, #e3a24a 100%);
+    box-shadow: 0 0 24px rgba(245, 215, 122, 0.45);
+    pointer-events: none;
+  }
+  .orbit {
+    position: absolute;
+    left: 50%; top: 50%;
+    border: 1px dashed rgba(136, 144, 176, 0.22);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+  }
+  .orbit.o1 { width: 140px; height: 110px; }
+  .orbit.o2 { width: 290px; height: 190px; }
+  .orbit.o3 { width: 480px; height: 260px; }
+  .star {
+    position: absolute;
+    width: 2px; height: 2px;
+    background: rgba(232, 232, 240, 0.55);
+    border-radius: 50%;
+    pointer-events: none;
+  }
+
+  /* Planet Walkers */
+  .walker {
+    position: absolute;
+    width: 36px; height: 36px;
+    margin: -18px 0 0 -18px;
+    will-change: left, top, transform;
+  }
+  .walker .name {
+    position: absolute;
+    top: 38px; left: 50%;
+    transform: translateX(-50%);
+    font-size: 11px;
+    color: #c8cde0;
+    white-space: nowrap;
+    text-shadow: 0 1px 2px #0d1022;
+    pointer-events: none;
+  }
   .head { border-radius: 50%; position: relative; }
   .walker .head { width: 36px; height: 36px; }
+  .eyes { position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; }
+  .eye { position: absolute; width: 4px; height: 4px; border-radius: 50%; background: #141728; margin: -2px 0 0 -2px; }
   .head.ringed::after { content: ""; position: absolute; left: -22%; top: 40%; width: 144%; height: 18%; border: 2px solid #cbbf8a; border-radius: 50%; }
   .head.tilted { transform: rotate(90deg); }
-  .bubble { position: absolute; top: -20px; left: 22px; white-space: nowrap; background: #fff; color: #222; border-radius: 12px; padding: 0 7px; font-size: 16px; }
+  .bubble {
+    position: absolute;
+    top: -26px; left: 50%;
+    transform: translateX(-50%);
+    white-space: nowrap;
+    background: #fff; color: #222;
+    border-radius: 12px;
+    padding: 1px 7px;
+    font-size: 14px;
+    pointer-events: none;
+  }
 </style>
 </head>
 <body>
 <h1>auto-talk <span class="clock" id="clock"></span></h1>
-<div class="note">The street runs on your clock: neighbours sleep, stay in, or wander the road and meet.</div>
-<button id="newGame">New game</button>
+<div class="topbar">
+  <div class="note">The street runs on your clock: neighbours sleep, stay in, or wander the solar system and share moments.</div>
+  <button id="newGame">New game</button>
+</div>
+
 <div class="modal" id="modal"><div class="panel">
-  <h2>Who lives on your side?</h2>
+  <h2>Who lives in your astrology houses?</h2>
   <div class="note">Drag a planet into a house, or click a planet and then a house. Click a filled house to empty it.</div>
   <div class="cards" id="cards"></div>
   <div class="slots" id="slots"></div>
   <button id="moveIn" disabled>Move in</button>
 </div></div>
+
 <div class="town">
+  <div class="harmony-banner" id="harmonyBanner">✨ Cosmic Alignment! Both Liveliness and Tenderness are in harmony! 💗</div>
+  <div class="meters">
+    <div class="meter-box">
+      <div class="meter-head"><span>✨ Liveliness (5s &amp; 3s)</span><span id="liveVal">0%</span></div>
+      <div class="meter-track"><div class="meter-fill live" id="liveBar"></div></div>
+    </div>
+    <div class="meter-box">
+      <div class="meter-head"><span>💗 Tenderness (1s &amp; 2s)</span><span id="tendVal">0%</span></div>
+      <div class="meter-track"><div class="meter-fill tend" id="tendBar"></div></div>
+    </div>
+  </div>
+  <div class="moment-log" id="momentLog">Watching the cosmos...</div>
+
   <div class="side">across the street</div>
   <div class="row" id="across"></div>
-  <div class="road" id="road"><div class="centre"></div></div>
+
+  <div class="cosmos" id="cosmos">
+    <div class="orbit o3"></div>
+    <div class="orbit o2"></div>
+    <div class="orbit o1"></div>
+    <div class="sun"></div>
+  </div>
+
   <div class="row" id="mine"></div>
   <div class="side">your side</div>
   <div id="ddfoot"></div>
@@ -67,7 +176,7 @@
 <script src="https://dungeon-items.ddddungeon.workers.dev/footer.js" data-version="v0.10"></script>
 
 <script type="module">
-import { PLANETS, streetHour, seeded } from './sim.js';
+import { PLANETS, OUTCOME, points, streetHour } from './sim.js';
 
 const KEY = 'auto-talk';
 let saved = {};
@@ -76,12 +185,23 @@ let mine = Array.isArray(saved.residents) && saved.residents.length === 5 ? save
 const ids = Object.keys(PLANETS);
 const others = () => ids.filter((id) => !mine.includes(id));
 
-const head = (id) => `<div class="head${id === 'saturn' ? ' ringed' : ''}${id === 'uranus' ? ' tilted' : ''}" style="background:${PLANETS[id].color}"></div>`;
+const head = (id, withEyes = false) =>
+  `<div class="head${id === 'saturn' ? ' ringed' : ''}${id === 'uranus' ? ' tilted' : ''}" style="background:${PLANETS[id].color}">${withEyes ? '<div class="eyes"><div class="eye e1"></div><div class="eye e2"></div></div>' : ''}</div>`;
 const hhmm = (h, m) => `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 const WORD = { asleep: 'asleep 💤', in: 'home', out: 'out' };
 
-// New game: a popup with the 10 planets and your 5 empty houses. Drag a planet into a house, or click a planet and
-// then a house. "Move in" closes it once all 5 are filled (so a wrong pick can be fixed before the popup goes away).
+// Sprinkle tiny background stars in the cosmos
+const cosmos = document.getElementById('cosmos');
+for (let i = 0; i < 42; i++) {
+  const s = document.createElement('div');
+  s.className = 'star';
+  s.style.left = `${(i * 37 + 11) % 98 + 1}%`;
+  s.style.top = `${(i * 53 + 19) % 94 + 3}%`;
+  s.style.opacity = (0.25 + (i % 5) * 0.14).toFixed(2);
+  cosmos.append(s);
+}
+
+// New game modal
 const modal = document.getElementById('modal'), cards = document.getElementById('cards'), slots = document.getElementById('slots');
 const moveIn = document.getElementById('moveIn');
 let picks = [null, null, null, null, null], chosen = null;
@@ -119,37 +239,41 @@ moveIn.onclick = () => {
   mine = [...picks];
   try { localStorage.setItem(KEY, JSON.stringify({ residents: mine })); } catch {}
   modal.classList.remove('open');
-  draw();
+  syncHousesAndMeters();
 };
 
-// Bubbles. While two talk (their meeting minute): speech bubbles back and forth, then how it ended for the last
-// 20 seconds. Animal Crossing villagers show symbols over their heads while they talk; the exact sequence is ours.
-// Anyone else out on the road now and then shows a small emote (ours: Animal Crossing villagers emote on their own,
-// the set and how often are ours).
-const TALK = ['💬', '…', '💬', '❗', '💬', '❓', '💬', '…'];
-const IDLE = ['♪', '❗', '❓', '💭', '♪'];
+// Meters & Houses
+const liveBar = document.getElementById('liveBar');
+const tendBar = document.getElementById('tendBar');
+const liveVal = document.getElementById('liveVal');
+const tendVal = document.getElementById('tendVal');
+const harmonyBanner = document.getElementById('harmonyBanner');
+const momentLog = document.getElementById('momentLog');
 
-const road = document.getElementById('road');
-const walkers = {};
-function walker(id) {
-  if (!walkers[id]) {
-    const w = document.createElement('div');
-    w.className = 'walker';
-    w.innerHTML = head(id) + '<div class="bubble"></div>';
-    road.append(w);
-    walkers[id] = w;
-  }
-  return walkers[id];
+let liveliness = 0;
+let tenderness = 0;
+let currentWhere = {};
+
+function renderMeters() {
+  liveBar.style.width = `${liveliness}%`;
+  tendBar.style.width = `${tenderness}%`;
+  liveVal.textContent = `${liveliness}%`;
+  tendVal.textContent = `${tenderness}%`;
+  const aligned = liveliness >= 70 && tenderness >= 70;
+  harmonyBanner.classList.toggle('aligned', aligned);
+  cosmos.classList.toggle('aligned', aligned);
 }
 
-function draw() {
+function syncHousesAndMeters() {
   const now = new Date();
-  const date = now.toLocaleDateString('en-CA'), h = now.getHours(), m = now.getMinutes(), sec = now.getSeconds();
-  const slot = Math.floor(sec / 5); // a new wander step and bubble every 5 seconds
+  const date = now.toLocaleDateString('en-CA'), h = now.getHours(), m = now.getMinutes();
   document.getElementById('clock').textContent = hhmm(h, m);
 
   const street = streetHour(ids, date, h, m);
-  const meeting = street.meetings.find((x) => x.minute === m);
+  currentWhere = street.where;
+  liveliness = Math.max(liveliness, street.liveliness);
+  tenderness = Math.max(tenderness, street.tenderness);
+  renderMeters();
 
   const fill = (rowId, list, across) => {
     const row = document.getElementById(rowId);
@@ -164,46 +288,265 @@ function draw() {
   };
   fill('across', others(), true);
   fill('mine', mine, false);
+}
 
-  // Out on the road: the road is a grid of spots, one neighbour per spot, so nobody piles up. Every 5 seconds each
-  // wanderer walks to a different free spot; a meeting pair hold two spots side by side for their minute.
-  const W = road.clientWidth, H = road.clientHeight, COLS = 10, ROWS = 3;
-  const spotXY = (c, r) => [(c + 0.5) * W / COLS, (r + 0.5) * H / ROWS];
-  const taken = new Set();
-  let meetCell;
-  if (meeting) {
-    const r = seeded(`${date}|${h}|${m}|spot`);
-    meetCell = [Math.floor(r() * (COLS - 1)), Math.floor(r() * ROWS)];
-    taken.add(meetCell.join()); taken.add([meetCell[0] + 1, meetCell[1]].join());
+// Smooth Animal Crossing-style wandering + personal space + chat -> 1s beat -> react
+const SPEED = 28;
+const MIN_SEP = 52;
+const SIGHT_DIST = 98;
+const CHAT_DIST = 54;
+const TALK_FRAMES = ['💬', '…', '💬', '🎵'];
+
+const agents = {};
+for (const id of ids) {
+  const el = document.createElement('div');
+  el.className = 'walker';
+  el.style.display = 'none';
+  el.innerHTML = head(id, true) + `<div class="name">${PLANETS[id].name}</div><div class="bubble"></div>`;
+  cosmos.append(el);
+  agents[id] = {
+    id,
+    el,
+    bubble: el.querySelector('.bubble'),
+    e1: el.querySelector('.e1'),
+    e2: el.querySelector('.e2'),
+    x: 0, y: 0, tx: 0, ty: 0,
+    facing: Math.random() * Math.PI * 2,
+    state: 'idle',
+    timer: 1 + Math.random() * 2.5,
+    bobPhase: Math.random() * Math.PI * 2,
+    partner: null,
+    isInitiator: false,
+    chatElapsed: 0,
+    reactElapsed: 0,
+    cooldown: 2 + Math.random() * 3,
+    outcome: null,
+    spawned: false,
+  };
+}
+
+function pickTarget(a, W, H) {
+  const pad = 40;
+  for (let attempt = 0; attempt < 8; attempt++) {
+    const ang = Math.random() * Math.PI * 2;
+    const dist = 48 + Math.random() * 82;
+    const cx = Math.max(pad, Math.min(W - pad, a.x + Math.cos(ang) * dist));
+    const cy = Math.max(pad, Math.min(H - pad, a.y + Math.sin(ang) * dist));
+    const clear = Object.values(agents).every(o =>
+      o.id === a.id || !o.spawned || Math.hypot(o.x - cx, o.y - cy) >= MIN_SEP
+    );
+    a.tx = cx; a.ty = cy;
+    if (clear) break;
   }
-  const free = [];
-  for (let c = 0; c < COLS; c++) for (let r = 0; r < ROWS; r++) if (!taken.has(c + ',' + r)) free.push([c, r]);
-  const shuffle = seeded(`${date}|${h}|${m}|${slot}|walk`);
-  for (let i = free.length - 1; i > 0; i--) { const j = Math.floor(shuffle() * (i + 1)); [free[i], free[j]] = [free[j], free[i]]; }
-  let next = 0;
-  for (const id of ids) {
-    const w = walker(id);
-    if (street.where[id] !== 'out') { w.style.display = 'none'; continue; }
-    w.style.display = '';
-    const bubble = w.querySelector('.bubble');
-    let x, y, text = '';
-    if (meeting && (id === meeting.a || id === meeting.b)) {
-      [x, y] = spotXY(meetCell[0] + (id === meeting.a ? 0 : 1), meetCell[1]);
-      if (sec >= 40) text = meeting.emote;
-      else if ((slot % 2 === 0) === (id === meeting.a)) text = TALK[(slot + m) % TALK.length];
-    } else {
-      const r = seeded(`${date}|${h}|${m}|${slot}|${id}`);
-      [x, y] = spotXY(...free[next++]);
-      if (r() < 0.12) text = IDLE[Math.floor(r() * IDLE.length)];
+  a.timer = 4.5;
+}
+
+function spawnAgent(a, W, H) {
+  const pad = 44;
+  for (let attempt = 0; attempt < 25; attempt++) {
+    const cx = pad + Math.random() * Math.max(80, W - pad * 2);
+    const cy = pad + Math.random() * Math.max(80, H - pad * 2);
+    if (Object.values(agents).every(o => !o.spawned || Math.hypot(o.x - cx, o.y - cy) >= MIN_SEP)) {
+      a.x = cx; a.y = cy; break;
     }
-    w.style.left = x + 'px'; w.style.top = y + 'px';
-    bubble.textContent = text;
-    bubble.style.display = text ? '' : 'none';
+  }
+  a.tx = a.x; a.ty = a.y;
+  a.state = Math.random() < 0.5 ? 'idle' : 'stroll';
+  a.timer = 0.8 + Math.random() * 2.5;
+  a.spawned = true;
+  if (a.state === 'stroll') pickTarget(a, W, H);
+}
+
+function checkNearby(a, active) {
+  if (a.cooldown > 0) return;
+  for (const o of active) {
+    if (o.id === a.id || o.cooldown > 0) continue;
+    if (o.state !== 'idle' && o.state !== 'stroll') continue;
+    if (Math.hypot(o.x - a.x, o.y - a.y) < SIGHT_DIST) {
+      if (Math.random() < 0.45) {
+        a.state = o.state = 'notice';
+        a.partner = o; o.partner = a;
+        a.isInitiator = true; o.isInitiator = false;
+        a.timer = o.timer = 0.7;
+        a.outcome = o.outcome = null;
+      } else {
+        a.cooldown = o.cooldown = 5;
+        a.facing = Math.atan2(o.y - a.y, o.x - a.x);
+      }
+      return;
+    }
   }
 }
 
-draw();
-setInterval(draw, 5000);
+let simTime = 0;
+let lastTs = performance.now();
+
+function tick(ts) {
+  const dt = Math.min(0.05, (ts - lastTs) / 1000);
+  lastTs = ts;
+  simTime += dt;
+
+  const W = cosmos.clientWidth || 700;
+  const H = cosmos.clientHeight || 300;
+  const active = [];
+
+  for (const id of ids) {
+    const a = agents[id];
+    if (currentWhere[id] !== 'out') {
+      a.spawned = false;
+      a.partner = null;
+      a.el.style.display = 'none';
+      continue;
+    }
+    if (!a.spawned) spawnAgent(a, W, H);
+    a.el.style.display = '';
+    active.push(a);
+  }
+
+  for (const a of active) {
+    a.timer -= dt;
+    if (a.cooldown > 0) a.cooldown -= dt;
+
+    if (a.state === 'idle') {
+      if (Math.random() < dt * 0.45) a.facing += (Math.random() - 0.5) * 1.4;
+      if (a.timer <= 0) { pickTarget(a, W, H); a.state = 'stroll'; }
+      checkNearby(a, active);
+    } else if (a.state === 'stroll') {
+      const dx = a.tx - a.x, dy = a.ty - a.y, d = Math.hypot(dx, dy);
+      if (d < 5 || a.timer <= 0) {
+        a.state = 'idle';
+        a.timer = 2 + Math.random() * 3.5;
+      } else {
+        a.x += (dx / d) * SPEED * dt;
+        a.y += (dy / d) * SPEED * dt;
+        a.facing = Math.atan2(dy, dx);
+        a.bobPhase += dt * (SPEED * 0.28);
+      }
+      checkNearby(a, active);
+    } else if (a.state === 'notice') {
+      const p = a.partner;
+      if (!p || !p.spawned) { a.state = 'idle'; a.timer = 1; continue; }
+      a.facing = Math.atan2(p.y - a.y, p.x - a.x);
+      if (a.timer <= 0) {
+        const dx = p.x - a.x, dy = p.y - a.y, d = Math.hypot(dx, dy);
+        if (d > CHAT_DIST) {
+          a.x += (dx / d) * SPEED * 1.1 * dt;
+          a.y += (dy / d) * SPEED * 1.1 * dt;
+          a.bobPhase += dt * (SPEED * 0.3);
+        } else if (p.state === 'notice') {
+          const score = points(PLANETS[a.id].type, PLANETS[p.id].type);
+          const out = OUTCOME[score];
+          a.state = p.state = 'chat';
+          a.timer = p.timer = 3.8;
+          a.chatElapsed = p.chatElapsed = 0;
+          a.outcome = p.outcome = out;
+          momentLog.textContent = `${PLANETS[a.id].name} and ${PLANETS[p.id].name} stopped to chat...`;
+        }
+      }
+    } else if (a.state === 'chat') {
+      a.chatElapsed += dt;
+      if (a.partner) a.facing = Math.atan2(a.partner.y - a.y, a.partner.x - a.x);
+      if (a.timer <= 0) {
+        a.state = 'beat';
+        a.timer = 1.0; // 1s quiet beat before showing the result
+      }
+    } else if (a.state === 'beat') {
+      if (a.partner) a.facing = Math.atan2(a.partner.y - a.y, a.partner.x - a.x);
+      if (a.timer <= 0) {
+        a.state = 'react';
+        a.timer = 2.4;
+        a.reactElapsed = 0;
+        if (a.isInitiator && a.partner && a.outcome) {
+          if (a.outcome.meter === 'liveliness') liveliness = Math.min(100, liveliness + a.outcome.gain);
+          else tenderness = Math.min(100, tenderness + a.outcome.gain);
+          renderMeters();
+          momentLog.textContent = `${PLANETS[a.id].name} & ${PLANETS[a.partner.id].name} ${a.outcome.label} ${a.outcome.emote}`;
+        }
+      }
+    } else if (a.state === 'react') {
+      a.reactElapsed += dt;
+      if (a.partner) a.facing = Math.atan2(a.partner.y - a.y, a.partner.x - a.x);
+      if (a.timer <= 0) {
+        a.state = 'idle';
+        a.timer = 1.5 + Math.random() * 2.5;
+        a.cooldown = 11;
+        a.partner = null;
+        a.outcome = null;
+      }
+    }
+  }
+
+  // Personal-space separation so planets never pile on top of each other
+  const pad = 34;
+  for (let i = 0; i < active.length; i++) {
+    for (let j = i + 1; j < active.length; j++) {
+      const a = active[i], b = active[j];
+      const dx = b.x - a.x, dy = b.y - a.y;
+      let d = Math.hypot(dx, dy);
+      if (d < MIN_SEP) {
+        const nx = d < 0.001 ? 1 : dx / d;
+        const ny = d < 0.001 ? 0 : dy / d;
+        const push = Math.min(MIN_SEP - d, 110 * dt);
+        const aLock = a.state === 'chat' || a.state === 'beat' || a.state === 'react';
+        const bLock = b.state === 'chat' || b.state === 'beat' || b.state === 'react';
+        if (aLock && !bLock) { b.x += nx * push; b.y += ny * push; }
+        else if (bLock && !aLock) { a.x -= nx * push; a.y -= ny * push; }
+        else { a.x -= nx * push * 0.5; a.y -= ny * push * 0.5; b.x += nx * push * 0.5; b.y += ny * push * 0.5; }
+      }
+    }
+  }
+
+  for (const a of active) {
+    a.x = Math.max(pad, Math.min(W - pad, a.x));
+    a.y = Math.max(pad, Math.min(H - pad - 10, a.y));
+
+    let offX = 0, offY = 0, bubbleText = '';
+    if (a.state === 'stroll') {
+      offY = -Math.abs(Math.sin(a.bobPhase)) * 3.5;
+    } else if (a.state === 'notice') {
+      bubbleText = '!';
+    } else if (a.state === 'chat') {
+      const turn = Math.floor(a.chatElapsed / 0.95) % 2;
+      const speaking = (a.isInitiator && turn === 0) || (!a.isInitiator && turn === 1);
+      if (speaking) {
+        offY = -Math.abs(Math.sin(a.chatElapsed * 10)) * 3.5;
+        bubbleText = TALK_FRAMES[Math.floor(a.chatElapsed / 0.95) % TALK_FRAMES.length];
+      }
+    } else if (a.state === 'react' && a.outcome) {
+      bubbleText = a.outcome.emote;
+      if (a.outcome.kind === 'sparkle') offY = -Math.abs(Math.sin(simTime * 9)) * 7.5;
+      else if (a.outcome.kind === 'music') { offX = Math.sin(simTime * 5) * 2.5; offY = -Math.abs(Math.sin(simTime * 5)) * 3; }
+      else if (a.outcome.kind === 'warm') offY = -Math.abs(Math.sin(simTime * 4)) * 2.5;
+      else if (a.outcome.kind === 'hug' && a.partner) {
+        const hugCurve = Math.sin(Math.min(1, a.reactElapsed / 2.4) * Math.PI);
+        const dx = a.partner.x - a.x, dy = a.partner.y - a.y, d = Math.hypot(dx, dy) || 1;
+        const lean = Math.max(0, (d - 32) * 0.5) * hugCurve;
+        offX = (dx / d) * lean;
+        offY = (dy / d) * lean;
+      }
+    }
+
+    a.el.style.left = `${(a.x + offX).toFixed(1)}px`;
+    a.el.style.top = `${(a.y + offY).toFixed(1)}px`;
+
+    // Directional eyes
+    const fx = 18 + Math.cos(a.facing) * 6;
+    const fy = 18 + Math.sin(a.facing) * 5;
+    const ex = -Math.sin(a.facing) * 4.2;
+    const ey = Math.cos(a.facing) * 4.2;
+    a.e1.style.left = `${(fx + ex).toFixed(1)}px`; a.e1.style.top = `${(fy + ey).toFixed(1)}px`;
+    a.e2.style.left = `${(fx - ex).toFixed(1)}px`; a.e2.style.top = `${(fy - ey).toFixed(1)}px`;
+
+    a.bubble.textContent = bubbleText;
+    a.bubble.style.display = bubbleText ? '' : 'none';
+  }
+
+  requestAnimationFrame(tick);
+}
+
+syncHousesAndMeters();
+setInterval(syncHousesAndMeters, 15000);
+requestAnimationFrame(tick);
 </script>
 </body>
 </html>
