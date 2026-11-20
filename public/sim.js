@@ -31,12 +31,12 @@ export function points(typeA, typeB) {
   return POINTS[ORDER.indexOf(typeA)][ORDER.indexOf(typeB)];
 }
 
-// Equal-warmth shared moments: 5 = extroverted joy, 1 = calm emotional connection.
+// Equal-warmth shared moments: 5 = outward Radiance, 1 = calm emotional Gravity.
 export const OUTCOME = {
-  5: { kind: 'sparkle', emote: '✨', label: 'shared a big laugh',     meter: 'liveliness', gain: 18 },
-  3: { kind: 'music',   emote: '🎵', label: 'hummed a tune together', meter: 'liveliness', gain: 12 },
-  2: { kind: 'warm',    emote: '☀️', label: 'had a sweet catch-up',   meter: 'tenderness', gain: 12 },
-  1: { kind: 'hug',     emote: '💗', label: 'shared a calm hug',      meter: 'tenderness', gain: 18 },
+  5: { kind: 'sparkle', emote: '✨', label: 'shared a big laugh',     meter: 'radiance', gain: 15 },
+  3: { kind: 'music',   emote: '🎵', label: 'hummed a tune together', meter: 'radiance', gain: 10 },
+  2: { kind: 'warm',    emote: '☀️', label: 'had a sweet catch-up',   meter: 'gravity',  gain: 10 },
+  1: { kind: 'hug',     emote: '💗', label: 'shared a calm hug',      meter: 'gravity',  gain: 15 },
 };
 
 // Hours asleep, local time [fall asleep, wake up]. New Leaf's hours (Nookipedia, personality pages).
@@ -86,8 +86,8 @@ export function whereIs(id, date, hour, minute) {
 // The street's hour so far: minute by minute, two neighbours who are out may meet.
 export function streetHour(ids, date, hour, nowMinute) {
   const meetings = [];
-  let liveliness = 0;
-  let tenderness = 0;
+  let radiance = 0;
+  let gravity = 0;
   for (let m = 0; m <= nowMinute; m++) {
     const out = ids.filter((id) => whereIs(id, date, hour, m) === 'out');
     const rand = rng(`${date}|${hour}|${m}|meet`);
@@ -97,11 +97,11 @@ export function streetHour(ids, date, hour, nowMinute) {
     while (b === a) b = out[Math.floor(rand() * out.length)];
     const score = points(PLANETS[a].type, PLANETS[b].type);
     const outcome = OUTCOME[score];
-    if (outcome.meter === 'liveliness') liveliness = Math.min(100, liveliness + outcome.gain);
-    else tenderness = Math.min(100, tenderness + outcome.gain);
+    if (outcome.meter === 'radiance') radiance = Math.min(100, radiance + outcome.gain);
+    else gravity = Math.min(100, gravity + outcome.gain);
     meetings.push({ minute: m, a, b, score, ...outcome });
   }
   const where = {};
   for (const id of ids) where[id] = whereIs(id, date, hour, nowMinute);
-  return { meetings, where, liveliness, tenderness };
+  return { meetings, where, radiance, gravity };
 }
