@@ -68,21 +68,26 @@
     box-shadow: 0 0 24px rgba(245, 215, 122, 0.45);
     pointer-events: none;
   }
-  .orbit {
+  .orbit-svg {
     position: absolute;
-    left: 50%; top: 50%;
-    border: 1px dashed rgba(136, 144, 176, 0.22);
-    border-radius: 50%;
-    transform: translate(-50%, -50%);
+    inset: 0;
+    width: 100%;
+    height: 100%;
     pointer-events: none;
+  }
+  .orbit-ellipse {
+    fill: none;
+    stroke: rgba(136, 144, 176, 0.24);
+    stroke-width: 1;
+    stroke-dasharray: 2 4;
   }
   .home-dot {
     position: absolute;
     width: 10px; height: 10px;
     margin: -5px 0 0 -5px;
     border-radius: 50%;
-    border: 1px dashed rgba(245, 215, 122, 0.4);
-    background: rgba(245, 215, 122, 0.06);
+    border: 1px dashed rgba(245, 215, 122, 0.35);
+    background: rgba(245, 215, 122, 0.05);
     pointer-events: none;
   }
   .star {
@@ -95,16 +100,22 @@
 
   /* Planet Walkers */
   .walker {
+    --sz: 34px;
     position: absolute;
-    width: 34px; height: 34px;
-    margin: -17px 0 0 -17px;
+    width: var(--sz); height: var(--sz);
+    margin: calc(var(--sz) / -2) 0 0 calc(var(--sz) / -2);
     will-change: left, top;
   }
-  .walker.in .head { box-shadow: 0 0 12px rgba(245, 215, 122, 0.45); }
-  .walker.asleep { opacity: 0.55; }
+  .walker.in, .walker.asleep { opacity: 0.48; }
+  .walker.asleep .eye,
+  .walker.in .eye {
+    width: 5px; height: 2px;
+    border-radius: 2px;
+    margin: -1px 0 0 -2.5px;
+  }
   .walker .name {
     position: absolute;
-    top: 36px; left: 50%;
+    top: calc(var(--sz) + 2px); left: 50%;
     transform: translateX(-50%);
     font-size: 11px;
     color: #c8cde0;
@@ -113,7 +124,7 @@
     pointer-events: none;
   }
   .head { border-radius: 50%; position: relative; }
-  .walker .head { width: 34px; height: 34px; }
+  .walker .head { width: 100%; height: 100%; }
   .eyes { position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; }
   .eye { position: absolute; width: 4px; height: 4px; border-radius: 50%; background: #141728; margin: -2px 0 0 -2px; }
   .head.ringed::after { content: ""; position: absolute; left: -22%; top: 40%; width: 144%; height: 18%; border: 2px solid #cbbf8a; border-radius: 50%; }
@@ -128,6 +139,15 @@
     padding: 1px 7px;
     font-size: 13px;
     pointer-events: none;
+  }
+  /* Bare expression beside the head (no dialogue box) */
+  .bubble.emote {
+    top: -12px; left: calc(var(--sz) - 3px);
+    transform: none;
+    background: transparent;
+    padding: 0;
+    font-size: 16px;
+    text-shadow: 0 1px 4px #0d1022;
   }
 </style>
 </head>
@@ -219,7 +239,6 @@ for (let i = 0; i < 48; i++) {
   cosmos.append(s);
 }
 
-// UI elements
 const modal = document.getElementById('modal');
 const cards = document.getElementById('cards');
 const pickCount = document.getElementById('pickCount');
@@ -287,16 +306,19 @@ moveIn.onclick = () => {
 
 function startRun() {
   runActive = true;
-  runLeft = 120; // 2-minute gathering
+  runLeft = 120;
   runMoments = [];
   radiance = 0;
   gravity = 0;
   renderMeters();
   runPill.style.display = '';
   endRunBtn.style.display = '';
-  modeNote.textContent = '2-minute gathering: your 5 chosen planets are out mingling!';
-  momentLog.textContent = 'All 5 planets stepped out to mingle...';
-  resetPositions();
+  modeNote.textContent = '2-minute gathering: your 5 are out alongside the real-time cosmos.';
+  momentLog.textContent = 'Your 5 planets stepped out to mingle...';
+
+  for (const id of mine) {
+    if (currentWhere[id] !== 'out') agents[id].placed = false;
+  }
   syncWhere();
 }
 
@@ -339,7 +361,6 @@ document.getElementById('realtimeBtn').onclick = () => {
   radiance = 0;
   gravity = 0;
   renderMeters();
-  resetPositions();
   syncWhere();
 };
 
@@ -353,13 +374,18 @@ function renderMeters() {
   cosmos.classList.toggle('aligned', aligned);
 }
 
-// Orbit homes
+// Orbit homes (SVG ellipses for pixel-exact alignment with planet positions)
+const svgNS = 'http://www.w3.org/2000/svg';
+const orbitSvg = document.createElementNS(svgNS, 'svg');
+orbitSvg.setAttribute('class', 'orbit-svg');
+cosmos.prepend(orbitSvg);
+
 const orbitEls = {};
 const homeDotEls = {};
 for (const id of ids) {
-  const o = document.createElement('div');
-  o.className = 'orbit';
-  cosmos.append(o);
+  const o = document.createElementNS(svgNS, 'ellipse');
+  o.setAttribute('class', 'orbit-ellipse');
+  orbitSvg.append(o);
   orbitEls[id] = o;
 
   const h = document.createElement('div');
@@ -377,16 +403,19 @@ function getHomeXY(id, W, H) {
   const slot = group.indexOf(id);
   const deg = (isMine ? 1 : -1) * (32 + slot * 29);
   const ang = (deg * Math.PI) / 180;
-  return { x: W / 2 + Math.cos(ang) * rx, y: H / 2 + Math.sin(ang) * ry, rx, ry, ang };
+  return { x: W / 2 + Math.cos(ang) * rx, y: H / 2 + Math.sin(ang) * ry, rx, ry, ang, idx };
 }
 
 function layoutOrbits() {
   const W = cosmos.clientWidth || 720;
   const H = cosmos.clientHeight || 420;
+  orbitSvg.setAttribute('viewBox', `0 0 ${W} ${H}`);
   for (const id of ids) {
     const home = getHomeXY(id, W, H);
-    orbitEls[id].style.width = `${home.rx * 2}px`;
-    orbitEls[id].style.height = `${home.ry * 2}px`;
+    orbitEls[id].setAttribute('cx', W / 2);
+    orbitEls[id].setAttribute('cy', H / 2);
+    orbitEls[id].setAttribute('rx', home.rx);
+    orbitEls[id].setAttribute('ry', home.ry);
     homeDotEls[id].style.left = `${home.x}px`;
     homeDotEls[id].style.top = `${home.y}px`;
   }
@@ -397,57 +426,59 @@ function syncWhere() {
   const date = now.toLocaleDateString('en-CA'), h = now.getHours(), m = now.getMinutes();
   document.getElementById('clock').textContent = hhmm(h, m);
 
+  const rt = streetHour(ids, date, h, m).where;
   if (runActive) {
     const w = {};
-    for (const id of ids) w[id] = mine.includes(id) ? 'out' : 'in';
+    for (const id of ids) w[id] = mine.includes(id) ? 'out' : rt[id];
     currentWhere = w;
   } else {
-    currentWhere = streetHour(ids, date, h, m).where;
+    currentWhere = rt;
   }
   document.getElementById('acrossNames').textContent = others().map(id => PLANETS[id].name).join(' · ');
   document.getElementById('mineNames').textContent = mine.map(id => PLANETS[id].name).join(' · ');
 }
 
-// Smooth Animal Crossing-style wandering + personal space + chat -> 1s beat -> react
-const SPEED = 30;
-const MIN_SEP = 50;
-const SIGHT_DIST = 110;
+// Normal Animal Crossing-style wandering + personal space + chat -> 1s beat -> react
+const SPEED = 28;
+const MIN_SEP = 52;
+const SUN_KEEP_OUT = 48;
+const SIGHT_DIST = 98;
 const CHAT_DIST = 54;
 const TALK_FRAMES = ['💬', '…', '💬', '🎵'];
 
+// Gentle astronomical size scaling around 34px (keeps small bodies cute & readable)
+const SIZE = {
+  jupiter: 44, saturn: 40, uranus: 36, neptune: 35,
+  earth: 31, venus: 30, mars: 27, mercury: 25, moon: 24, pluto: 22,
+};
+
 const agents = {};
 for (const id of ids) {
+  const sz = SIZE[id] || 34;
   const el = document.createElement('div');
   el.className = 'walker';
+  el.style.setProperty('--sz', `${sz}px`);
   el.innerHTML = head(id, true) + `<div class="name">${PLANETS[id].name}</div><div class="bubble"></div>`;
   cosmos.append(el);
   agents[id] = {
-    id, el,
+    id, el, sz,
     bubble: el.querySelector('.bubble'),
     e1: el.querySelector('.e1'),
     e2: el.querySelector('.e2'),
     x: 0, y: 0, tx: 0, ty: 0,
+    orbitOffset: 0,
     facing: Math.random() * Math.PI * 2,
     state: 'idle',
-    timer: 1 + Math.random() * 2,
+    timer: 1 + Math.random() * 2.5,
     bobPhase: Math.random() * Math.PI * 2,
     partner: null,
     isInitiator: false,
     chatElapsed: 0,
     reactElapsed: 0,
-    cooldown: 1.5 + Math.random() * 2.5,
+    cooldown: 2 + Math.random() * 3,
     outcome: null,
     placed: false,
   };
-}
-
-function resetPositions() {
-  for (const id of ids) {
-    agents[id].placed = false;
-    agents[id].partner = null;
-    agents[id].outcome = null;
-    agents[id].cooldown = 1 + Math.random() * 2;
-  }
 }
 
 function placeAtHome(a, isOut, W, H) {
@@ -456,8 +487,9 @@ function placeAtHome(a, isOut, W, H) {
     a.x = home.x - Math.cos(home.ang) * 24;
     a.y = home.y - Math.sin(home.ang) * 20;
     a.facing = home.ang + Math.PI;
-    a.state = 'stroll';
-    pickTarget(a, W, H);
+    a.state = Math.random() < 0.5 ? 'idle' : 'stroll';
+    a.timer = 0.8 + Math.random() * 2.2;
+    if (a.state === 'stroll') pickTarget(a, W, H);
   } else {
     a.x = home.x; a.y = home.y;
     a.facing = home.ang + Math.PI;
@@ -470,19 +502,17 @@ function pickTarget(a, W, H) {
   const pad = 42;
   for (let attempt = 0; attempt < 8; attempt++) {
     const ang = Math.random() * Math.PI * 2;
-    const dist = 50 + Math.random() * 90;
-    // Slight gentle bias toward the center during a run so the 5 find each other naturally
-    const pullX = runActive ? (W / 2 - a.x) * 0.25 : 0;
-    const pullY = runActive ? (H / 2 - a.y) * 0.25 : 0;
-    const cx = Math.max(pad, Math.min(W - pad, a.x + Math.cos(ang) * dist + pullX));
-    const cy = Math.max(pad, Math.min(H - pad - 10, a.y + Math.sin(ang) * dist + pullY));
-    const clear = Object.values(agents).every(o =>
+    const dist = 48 + Math.random() * 86;
+    const cx = Math.max(pad, Math.min(W - pad, a.x + Math.cos(ang) * dist));
+    const cy = Math.max(pad, Math.min(H - pad - 10, a.y + Math.sin(ang) * dist));
+    const clearSun = Math.hypot(cx - W / 2, cy - H / 2) >= SUN_KEEP_OUT;
+    const clear = clearSun && Object.values(agents).every(o =>
       o.id === a.id || !o.placed || Math.hypot(o.x - cx, o.y - cy) >= MIN_SEP
     );
     a.tx = cx; a.ty = cy;
     if (clear) break;
   }
-  a.timer = 4.2;
+  a.timer = 4.5;
 }
 
 function checkNearby(a, outList) {
@@ -491,14 +521,14 @@ function checkNearby(a, outList) {
     if (o.id === a.id || o.cooldown > 0) continue;
     if (o.state !== 'idle' && o.state !== 'stroll') continue;
     if (Math.hypot(o.x - a.x, o.y - a.y) < SIGHT_DIST) {
-      if (Math.random() < (runActive ? 0.6 : 0.45)) {
+      if (Math.random() < 0.45) {
         a.state = o.state = 'notice';
         a.partner = o; o.partner = a;
         a.isInitiator = true; o.isInitiator = false;
-        a.timer = o.timer = 0.65;
+        a.timer = o.timer = 0.7;
         a.outcome = o.outcome = null;
       } else {
-        a.cooldown = o.cooldown = 4;
+        a.cooldown = o.cooldown = 5;
         a.facing = Math.atan2(o.y - a.y, o.x - a.x);
       }
       return;
@@ -531,9 +561,14 @@ function tick(ts) {
     a.el.className = `walker ${where}`;
 
     if (where !== 'out') {
+      // Gently drift along their own orbit according to orbital distance (inner = slightly faster, outer = slower)
       const home = getHomeXY(id, W, H);
-      a.x = home.x; a.y = home.y;
-      a.facing = home.ang + Math.PI;
+      const orbitRate = 0.045 / (1 + home.idx * 0.45);
+      a.orbitOffset += orbitRate * dt;
+      const ang = home.ang + a.orbitOffset;
+      a.x = W / 2 + Math.cos(ang) * home.rx;
+      a.y = H / 2 + Math.sin(ang) * home.ry;
+      a.facing = ang + Math.PI / 2;
       a.partner = null;
       a.placed = true;
     } else {
@@ -554,7 +589,7 @@ function tick(ts) {
       const dx = a.tx - a.x, dy = a.ty - a.y, d = Math.hypot(dx, dy);
       if (d < 5 || a.timer <= 0) {
         a.state = 'idle';
-        a.timer = (runActive ? 1.2 : 2.0) + Math.random() * 2.2;
+        a.timer = 2 + Math.random() * 3.5;
       } else {
         a.x += (dx / d) * SPEED * dt;
         a.y += (dy / d) * SPEED * dt;
@@ -569,14 +604,14 @@ function tick(ts) {
       if (a.timer <= 0) {
         const dx = p.x - a.x, dy = p.y - a.y, d = Math.hypot(dx, dy);
         if (d > CHAT_DIST) {
-          a.x += (dx / d) * SPEED * 1.15 * dt;
-          a.y += (dy / d) * SPEED * 1.15 * dt;
+          a.x += (dx / d) * SPEED * 1.1 * dt;
+          a.y += (dy / d) * SPEED * 1.1 * dt;
           a.bobPhase += dt * (SPEED * 0.3);
         } else if (p.state === 'notice') {
           const score = points(PLANETS[a.id].type, PLANETS[p.id].type);
           const out = OUTCOME[score];
           a.state = p.state = 'chat';
-          a.timer = p.timer = 3.6;
+          a.timer = p.timer = 3.8;
           a.chatElapsed = p.chatElapsed = 0;
           a.outcome = p.outcome = out;
           momentLog.textContent = `${PLANETS[a.id].name} and ${PLANETS[p.id].name} stopped to chat...`;
@@ -593,12 +628,15 @@ function tick(ts) {
         a.timer = 2.4;
         a.reactElapsed = 0;
         if (a.isInitiator && a.partner && a.outcome) {
-          if (a.outcome.meter === 'radiance') radiance = Math.min(100, radiance + a.outcome.gain);
-          else gravity = Math.min(100, gravity + a.outcome.gain);
-          renderMeters();
+          const countsForRun = !runActive || mine.includes(a.id) || mine.includes(a.partner.id);
+          if (countsForRun) {
+            if (a.outcome.meter === 'radiance') radiance = Math.min(100, radiance + a.outcome.gain);
+            else gravity = Math.min(100, gravity + a.outcome.gain);
+            renderMeters();
+          }
           const line = `${PLANETS[a.id].name} & ${PLANETS[a.partner.id].name} ${a.outcome.label} ${a.outcome.emote}`;
           momentLog.textContent = line;
-          if (runActive) runMoments.push(line);
+          if (runActive && countsForRun) runMoments.push(line);
         }
       }
     } else if (a.state === 'react') {
@@ -606,8 +644,8 @@ function tick(ts) {
       if (a.partner) a.facing = Math.atan2(a.partner.y - a.y, a.partner.x - a.x);
       if (a.timer <= 0) {
         a.state = 'idle';
-        a.timer = 1.2 + Math.random() * 2.0;
-        a.cooldown = runActive ? 7 : 11;
+        a.timer = 1.5 + Math.random() * 2.5;
+        a.cooldown = 11;
         a.partner = null;
         a.outcome = null;
       }
@@ -615,6 +653,18 @@ function tick(ts) {
   }
 
   const pad = 34;
+  for (const a of outList) {
+    const sdx = a.x - W / 2, sdy = a.y - H / 2;
+    const sd = Math.hypot(sdx, sdy);
+    const minSun = SUN_KEEP_OUT + a.sz * 0.25;
+    if (sd < minSun) {
+      const nx = sd < 0.001 ? 1 : sdx / sd;
+      const ny = sd < 0.001 ? 0 : sdy / sd;
+      const push = Math.min(minSun - sd, 120 * dt);
+      a.x += nx * push;
+      a.y += ny * push;
+    }
+  }
   for (let i = 0; i < outList.length; i++) {
     for (let j = i + 1; j < outList.length; j++) {
       const a = outList[i], b = outList[j];
@@ -636,10 +686,11 @@ function tick(ts) {
   for (const id of ids) {
     const a = agents[id];
     const where = currentWhere[id] || 'in';
-    let offX = 0, offY = 0, bubbleText = '';
+    let offX = 0, offY = 0, bubbleText = '', isEmote = false;
 
     if (where === 'asleep') {
       bubbleText = '💤';
+      isEmote = true;
     } else if (where === 'out') {
       a.x = Math.max(pad, Math.min(W - pad, a.x));
       a.y = Math.max(pad, Math.min(H - pad - 12, a.y));
@@ -657,6 +708,7 @@ function tick(ts) {
         }
       } else if (a.state === 'react' && a.outcome) {
         bubbleText = a.outcome.emote;
+        isEmote = true;
         if (a.outcome.kind === 'sparkle') offY = -Math.abs(Math.sin(simTime * 9)) * 7.5;
         else if (a.outcome.kind === 'music') { offX = Math.sin(simTime * 5) * 2.5; offY = -Math.abs(Math.sin(simTime * 5)) * 3; }
         else if (a.outcome.kind === 'warm') offY = -Math.abs(Math.sin(simTime * 4)) * 2.5;
@@ -673,13 +725,16 @@ function tick(ts) {
     a.el.style.left = `${(a.x + offX).toFixed(1)}px`;
     a.el.style.top = `${(a.y + offY).toFixed(1)}px`;
 
-    const fx = 17 + Math.cos(a.facing) * 5.5;
-    const fy = 17 + Math.sin(a.facing) * 4.5;
-    const ex = -Math.sin(a.facing) * 4;
-    const ey = Math.cos(a.facing) * 4;
+    const r = a.sz / 2;
+    const scale = a.sz / 34;
+    const fx = r + Math.cos(a.facing) * (5.5 * scale);
+    const fy = r + Math.sin(a.facing) * (4.5 * scale);
+    const ex = -Math.sin(a.facing) * (4 * scale);
+    const ey = Math.cos(a.facing) * (4 * scale);
     a.e1.style.left = `${(fx + ex).toFixed(1)}px`; a.e1.style.top = `${(fy + ey).toFixed(1)}px`;
     a.e2.style.left = `${(fx - ex).toFixed(1)}px`; a.e2.style.top = `${(fy - ey).toFixed(1)}px`;
 
+    a.bubble.className = isEmote ? 'bubble emote' : 'bubble';
     a.bubble.textContent = bubbleText;
     a.bubble.style.display = bubbleText ? '' : 'none';
   }
