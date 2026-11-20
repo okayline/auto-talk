@@ -1,135 +1,768 @@
-// auto-talk: the street's day, worked out from a seed. No page code here, so it can be tested in node.
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cosmic Talk</title>
+<style>
+  body { background: url("17520.jpg") center / cover fixed no-repeat #0d1022; color: #ffffff; font-family: "Courier New", monospace; margin: 0; padding: 20px; min-height: 100vh; box-sizing: border-box; }
+  h1 { color: #ff8fc8; font-size: 20px; margin: 0 0 12px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; text-shadow: 0 1px 4px rgba(5, 7, 18, 0.85); }
+  button { font-family: inherit; background: #ff8fc8; color: #0d1022; border: 0; padding: 6px 12px; cursor: pointer; }
+  button.ghost { background: #1d2742; color: #ffffff; border: 1px solid #3a4670; }
+  button:disabled { opacity: .65; cursor: default; }
+  .topbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+  .modal { position: fixed; inset: 0; z-index: 1000; background: rgba(5, 7, 18, .82); display: none; align-items: center; justify-content: center; }
+  .modal.open { display: flex; }
+  .panel { background: #1d2742; border: 2px solid #ff8fc8; padding: 16px; max-width: 640px; width: calc(100% - 40px); }
+  .panel h2 { color: #ff8fc8; font-size: 16px; margin: 0 0 8px; }
+  .cards { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin: 12px 0 14px; }
+  .card { background: #161b33; border: 2px solid #3a4670; text-align: center; padding: 8px 2px; cursor: pointer; font-size: 12px; user-select: none; color: #ffffff; }
+  .card.chosen { border-color: #ff8fc8; background: #232d4f; }
+  .card .head { width: 36px; height: 36px; margin: 4px auto 6px; }
+  .clock { font-size: 18px; color: #ff8fc8; }
+  .stat-pill { font-size: 12px; color: #ffffff; text-shadow: 0 1px 3px rgba(5, 7, 18, 0.85); }
+  .note { color: #ffffff; text-shadow: 0 1px 3px rgba(5, 7, 18, 0.85); font-size: 12px; }
 
-// The 10 neighbours (8 types; Pluto and the Moon share GRUFF and DREAMY): a planet, its personality type, and a look (head colour).
-export const PLANETS = {
-  mercury: { name: 'Mercury', type: 'SLY',      color: '#9a948c' },
-  venus:   { name: 'Venus',   type: 'HAUGHTY',  color: '#e3c27a' },
-  earth:   { name: 'Earth',   type: 'PRIM',     color: '#3f8fd0' },
-  mars:    { name: 'Mars',    type: 'TSUNDERE', color: '#d0603c' },
-  jupiter: { name: 'Jupiter', type: 'JOCK',     color: '#c99a6b' },
-  saturn:  { name: 'Saturn',  type: 'GRUFF',    color: '#e6d39a' },
-  uranus:  { name: 'Uranus',  type: 'PEPPY',    color: '#7fd6e0' },
-  neptune: { name: 'Neptune', type: 'DREAMY',   color: '#3450c8' },
-  pluto:   { name: 'Pluto',   type: 'GRUFF',    color: '#c9a98a' },
-  moon:    { name: 'Moon',    type: 'DREAMY',   color: '#d8d8d0' },
-};
+  .town { margin: 14px 0 8px; max-width: 720px; display: flex; flex-direction: column; }
 
-// Movement, spacing, and conversation pacing (tuned for calm Animal Crossing-style wandering).
-export const MOTION = {
-  speed:       28,    // px/sec stroll speed
-  avgPause:    3.0,   // seconds average idle pause
-  talkChance:  0.45,  // probability two nearby planets stop to chat
-  minSep:      52,    // personal-space circle (px)
-  sunKeepOut:  48,    // buffer around the Sun's center (px)
-  sightDist:   98,    // distance to notice a neighbour (px)
-  chatDist:    54,    // conversational spacing (px)
-  preBeatSec:  0.8,   // quiet beat after walking up before talking
-  chatSec:     5.4,   // total chat duration (4 full turns)
-  talkTurnSec: 1.35,  // seconds per speaking turn
-  beatSec:     1.2,   // quiet beat after chat before reaction
-  reactSec:    2.8,   // reaction animation duration
-};
+  /* Twin Harmony Meters: Radiance & Gravity */
+  .meters { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 10px; }
+  .meter-box { background: rgba(22, 27, 51, 0.65); border: 2px solid #3a4670; padding: 8px 10px; backdrop-filter: blur(2px); }
+  .meter-head { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 6px; color: #ffffff; }
+  .meter-track { height: 10px; background: #0d1022; border: 1px solid #3a4670; position: relative; }
+  .meter-fill { height: 100%; width: 0%; transition: width .5s ease; }
+  .meter-fill.rad { background: #f5d77a; }
+  .meter-fill.grav { background: #ff8fc8; }
+  .harmony-banner { display: none; margin-bottom: 10px; padding: 8px 12px; background: rgba(29, 39, 66, 0.85); border: 2px solid #f5d77a; color: #f5d77a; font-size: 13px; text-align: center; }
+  .harmony-banner.aligned { display: block; }
+  .moment-log { font-size: 12px; color: #ffffff; text-shadow: 0 1px 3px rgba(5, 7, 18, 0.85); margin-bottom: 8px; min-height: 16px; }
 
-// Animal Crossing: New Leaf's personality compatibility points (Nookipedia, "Compatibility"),
-// with Normal=PRIM, Lazy=DREAMY, Snooty=HAUGHTY, Cranky=GRUFF, Smug=SLY, Big sister=TSUNDERE.
-const ORDER = ['PRIM', 'DREAMY', 'PEPPY', 'JOCK', 'HAUGHTY', 'GRUFF', 'SLY', 'TSUNDERE'];
-const POINTS = [
-  [3, 1, 1, 2, 5, 3, 5, 2],
-  [1, 5, 2, 1, 3, 2, 3, 5],
-  [1, 2, 5, 5, 2, 1, 3, 3],
-  [2, 1, 5, 5, 1, 3, 2, 3],
-  [5, 3, 2, 1, 3, 5, 2, 1],
-  [3, 2, 1, 3, 5, 5, 1, 2],
-  [5, 3, 3, 2, 2, 1, 5, 1],
-  [2, 5, 3, 3, 1, 2, 1, 5],
-];
-export function points(typeA, typeB) {
-  return POINTS[ORDER.indexOf(typeA)][ORDER.indexOf(typeB)];
-}
+  /* Summary Modal List */
+  .summary-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 12px 0; }
+  .summary-box { background: #161b33; border: 1px solid #3a4670; padding: 10px; font-size: 13px; color: #ffffff; }
+  .summary-list { max-height: 150px; overflow-y: auto; margin: 0 0 14px; padding-left: 18px; font-size: 12px; color: #ffffff; line-height: 1.5; }
+  .modal-actions { display: flex; gap: 10px; flex-wrap: wrap; }
 
-// Equal-warmth shared moments: 5 = outward Radiance, 1 = calm emotional Gravity.
-export const OUTCOME = {
-  5: { kind: 'sparkle', emote: '✨', label: 'shared a big laugh',     meter: 'radiance', gain: 20 },
-  3: { kind: 'music',   emote: '🎵', label: 'hummed a tune together', meter: 'radiance', gain: 14 },
-  2: { kind: 'warm',    emote: '🌼', label: 'had a sweet catch-up',   meter: 'gravity',  gain: 14 },
-  1: { kind: 'hug',     emote: '💗', label: 'shared a calm hug',      meter: 'gravity',  gain: 20 },
-};
-
-// Cozy at-home activities per personality (shown intermittently while 'in').
-export const HOBBIES = {
-  PRIM:     ['📖', '🧶', '🍰'],
-  DREAMY:   ['🍩', '🍜', '💭'],
-  PEPPY:    ['🎤', '💃', '📸'],
-  JOCK:     ['💪', '🏋️', '🏃'],
-  HAUGHTY:  ['☕', '🪞', '💅'],
-  GRUFF:    ['🪴', '🍵', '📻'],
-  SLY:      ['👔', '🪞', '🎸'],
-  TSUNDERE: ['🎮', '🔭', '🎧'],
-};
-
-// Hours asleep, local time [fall asleep, wake up]. New Leaf's hours (Nookipedia, personality pages).
-export const SLEEP = {
-  PRIM:     [0, 6],
-  JOCK:     [0, 7],
-  DREAMY:   [23, 9],
-  PEPPY:    [1, 9],
-  HAUGHTY:  [2, 9.5],
-  GRUFF:    [4, 10],
-  SLY:      [2, 8.5],
-  TSUNDERE: [3, 11],
-};
-export function isAsleep(type, hour) {
-  if (!SLEEP[type]) return false;
-  const [a, b] = SLEEP[type];
-  return a < b ? hour >= a && hour < b : hour >= a || hour < b;
-}
-
-export const OUT_CHANCE = 0.6;     // awake neighbours outside for an hour
-export const MEET_CHANCE = 0.5;    // a meeting in a given minute, when 2 or more are out
-
-// Small seeded random (mulberry32) from a string.
-export function seeded(seedText) { return rng(seedText); }
-function rng(seedText) {
-  let h = 1779033703 ^ seedText.length;
-  for (let i = 0; i < seedText.length; i++) {
-    h = Math.imul(h ^ seedText.charCodeAt(i), 3432918353);
-    h = (h << 13) | (h >>> 19);
+  /* Solar System Stage with Orbit Homes */
+  #ddfoot { margin-top: 16px; text-align: right; color: #ffffff; text-shadow: 0 1px 3px rgba(5, 7, 18, 0.85); }
+  .side { font-size: 11px; color: #ffffff; text-shadow: 0 1px 3px rgba(5, 7, 18, 0.85); margin: 2px 0; display: flex; justify-content: space-between; gap: 8px; }
+  .cosmos {
+    margin: 4px 0;
+    height: 420px;
+    position: relative;
+    overflow: hidden;
+    background:
+      radial-gradient(circle at 50% 50%, rgba(245, 215, 122, 0.14) 0%, rgba(245, 215, 122, 0.03) 24%, transparent 58%),
+      rgba(10, 13, 28, 0.50);
+    border-top: 2px solid #3a4670;
+    border-bottom: 2px solid #3a4670;
   }
-  let a = h >>> 0;
-  return () => {
-    a = (a + 0x6d2b79f5) >>> 0;
-    let t = a;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  .cosmos.aligned { border-color: #f5d77a; }
+  .orbit-svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+  }
+  .orbit-ellipse {
+    fill: none;
+    stroke: rgba(210, 218, 235, 0.42);
+    stroke-width: 1;
+    stroke-dasharray: 2 4;
+  }
+  .sun {
+    position: absolute;
+    left: 50%; top: 50%;
+    width: 28px; height: 28px;
+    margin: -14px 0 0 -14px;
+    border-radius: 50%;
+    background: radial-gradient(circle, #fff3b8 0%, #f5d77a 55%, #e3a24a 100%);
+    box-shadow: 0 0 24px rgba(245, 215, 122, 0.45);
+    pointer-events: none;
+  }
+  .star {
+    position: absolute;
+    width: 2px; height: 2px;
+    background: rgba(255, 255, 255, 0.6);
+    border-radius: 50%;
+    pointer-events: none;
+  }
+
+  /* Planet Walkers */
+  .walker {
+    --sz: 34px;
+    position: absolute;
+    width: var(--sz); height: var(--sz);
+    margin: calc(var(--sz) / -2) 0 0 calc(var(--sz) / -2);
+    will-change: left, top;
+  }
+  .walker.in { opacity: 0.78; }
+  .walker.asleep { opacity: 0.48; }
+  .walker.asleep .head { filter: grayscale(100%); }
+  .walker.asleep .eye {
+    width: 5px; height: 2px;
+    border-radius: 2px;
+    margin: -1px 0 0 -2.5px;
+  }
+  .walker .name {
+    position: absolute;
+    top: calc(var(--sz) + 2px); left: 50%;
+    transform: translateX(-50%);
+    font-size: 11px;
+    color: #ffffff;
+    white-space: nowrap;
+    text-shadow: 0 1px 3px rgba(5, 7, 18, 0.9);
+    pointer-events: none;
+  }
+  .head { border-radius: 50%; position: relative; }
+  .head .surface { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: 50%; overflow: hidden; pointer-events: none; }
+  .walker .head { width: 100%; height: 100%; }
+  .eyes { position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; }
+  .eye { position: absolute; width: 4px; height: 4px; border-radius: 50%; background: #141728; margin: -2px 0 0 -2px; }
+  .head.ringed::after { content: ""; position: absolute; left: -22%; top: 40%; width: 144%; height: 18%; border: 2px solid #cbbf8a; border-radius: 50%; }
+  .head.tilted { transform: rotate(90deg); }
+  .bubble {
+    position: absolute;
+    top: -14px; left: calc(var(--sz) - 2px);
+    white-space: nowrap;
+    background: transparent;
+    color: #f5d77a;
+    padding: 0;
+    font-size: 15px;
+    text-shadow: 0 1px 4px #0d1022;
+    pointer-events: none;
+  }
+</style>
+</head>
+<body>
+<h1>
+  <span>Cosmic Talk</span>
+  <span class="clock" id="clock"></span>
+  <span class="stat-pill" id="alignCount"></span>
+</h1>
+<div class="topbar">
+  <button id="newRun">Gather 5 planets for 1 min</button>
+  <button id="endRun" class="ghost" style="display:none;">End run</button>
+  <div class="note" id="modeNote">Real-time mode: planets follow your local clock.</div>
+</div>
+
+<!-- Pick 5 Modal -->
+<div class="modal" id="modal"><div class="panel">
+  <h2>Call 5 planets together</h2>
+  <div class="note" id="pickCount">Click 5 planets to invite out for a 1-minute cosmic gathering (0/5 selected).</div>
+  <div class="cards" id="cards"></div>
+  <div class="modal-actions">
+    <button id="moveIn" disabled>Call them out</button>
+    <button id="cancelPick" class="ghost">Cancel</button>
+  </div>
+</div></div>
+
+<!-- Run Summary Modal -->
+<div class="modal" id="summaryModal"><div class="panel">
+  <h2 id="summaryTitle">Gathering Complete!</h2>
+  <div class="note" id="summarySub"></div>
+  <div class="summary-stats">
+    <div class="summary-box">✨ Radiance: <strong id="sumRad">0%</strong></div>
+    <div class="summary-box">💗 Gravity: <strong id="sumGrav">0%</strong></div>
+  </div>
+  <ul class="summary-list" id="sumList"></ul>
+  <div class="modal-actions">
+    <button id="againBtn">Call another 5</button>
+    <button id="realtimeBtn" class="ghost">Return to real-time</button>
+  </div>
+</div></div>
+
+<div class="town">
+  <div class="harmony-banner" id="harmonyBanner">✨ Cosmic Alignment! Radiance and Gravity are in harmony! 💗</div>
+  <div class="meters">
+    <div class="meter-box">
+      <div class="meter-head"><span>✨ Radiance (5s &amp; 3s)</span><span id="radVal">0%</span></div>
+      <div class="meter-track"><div class="meter-fill rad" id="radBar"></div></div>
+    </div>
+    <div class="meter-box">
+      <div class="meter-head"><span>💗 Gravity (1s &amp; 2s)</span><span id="gravVal">0%</span></div>
+      <div class="meter-track"><div class="meter-fill grav" id="gravBar"></div></div>
+    </div>
+  </div>
+  <div class="moment-log" id="momentLog">Watching the cosmos...</div>
+
+  <div class="side"><span>across the street (top orbits)</span><span id="acrossNames"></span></div>
+  <div class="cosmos" id="cosmos">
+    <div class="sun"></div>
+  </div>
+  <div class="side"><span>your side (bottom orbits)</span><span id="mineNames"></span></div>
+  <div id="ddfoot"></div>
+</div>
+<script src="https://dungeon-items.ddddungeon.workers.dev/footer.js" data-version="v0.10"></script>
+
+<script type="module">
+import { PLANETS, MOTION, OUTCOME, HOBBIES, points, streetHour } from './sim.js';
+
+const KEY = 'auto-talk';
+let saved = {};
+try { saved = JSON.parse(localStorage.getItem(KEY)) || {}; } catch {}
+let mine = Array.isArray(saved.residents) && saved.residents.length === 5 ? saved.residents : ['saturn', 'uranus', 'earth', 'neptune', 'jupiter'];
+let alignments = Number.isFinite(saved.alignments) ? saved.alignments : 0;
+
+const ids = Object.keys(PLANETS);
+const others = () => ids.filter((id) => !mine.includes(id));
+
+const MARKS = {
+  mercury: '<circle cx="34" cy="36" r="10" fill="#7c766e" fill-opacity="0.75"/><circle cx="68" cy="64" r="8" fill="#7c766e" fill-opacity="0.75"/><circle cx="38" cy="70" r="5" fill="#7c766e" fill-opacity="0.75"/>',
+  venus:   '<ellipse cx="50" cy="36" rx="34" ry="8" fill="#f0da9e" fill-opacity="0.65"/><ellipse cx="44" cy="64" rx="32" ry="9" fill="#cba65a" fill-opacity="0.55"/>',
+  earth:   '<ellipse cx="50" cy="12" rx="20" ry="6" fill="#f2efe9" fill-opacity="0.8"/><ellipse cx="32" cy="40" rx="18" ry="14" fill="#63b87a" fill-opacity="0.85"/><ellipse cx="70" cy="62" rx="15" ry="18" fill="#63b87a" fill-opacity="0.85"/>',
+  mars:    '<ellipse cx="50" cy="12" rx="20" ry="7" fill="#f2efe9" fill-opacity="0.85"/><circle cx="32" cy="64" r="10" fill="#a84628" fill-opacity="0.7"/><circle cx="68" cy="56" r="7" fill="#a84628" fill-opacity="0.7"/>',
+  jupiter: '<rect x="0" y="26" width="100" height="10" fill="#a8764c" fill-opacity="0.7"/><rect x="0" y="60" width="100" height="10" fill="#e0b88f" fill-opacity="0.65"/><ellipse cx="66" cy="68" rx="12" ry="8" fill="#d0603c" fill-opacity="0.9"/>',
+  saturn:  '<rect x="0" y="30" width="100" height="9" fill="#d4bd7f" fill-opacity="0.7"/><rect x="0" y="60" width="100" height="8" fill="#f2e5b8" fill-opacity="0.6"/>',
+  uranus:  '<rect x="0" y="44" width="100" height="12" fill="#a4e8ef" fill-opacity="0.55"/>',
+  neptune: '<rect x="0" y="34" width="100" height="8" fill="#6b87f0" fill-opacity="0.5"/><ellipse cx="64" cy="64" rx="11" ry="8" fill="#22389c" fill-opacity="0.85"/>',
+  pluto:   '<path d="M 62 74 C 50 66, 50 54, 57 54 C 60 54, 62 57, 62 59 C 62 57, 64 54, 67 54 C 74 54, 74 66, 62 74 Z" fill="#ece6dc" fill-opacity="0.85"/>',
+  moon:    '<circle cx="34" cy="36" r="11" fill="#b4b4aa" fill-opacity="0.8"/><circle cx="66" cy="64" r="9" fill="#b4b4aa" fill-opacity="0.8"/><circle cx="38" cy="70" r="6" fill="#b4b4aa" fill-opacity="0.8"/>',
+};
+const head = (id, withEyes = false) =>
+  `<div class="head${id === 'saturn' ? ' ringed' : ''}${id === 'uranus' ? ' tilted' : ''}" style="background:${PLANETS[id].color}"><svg class="surface" viewBox="0 0 100 100">${MARKS[id] || ''}</svg>${withEyes ? '<div class="eyes"><div class="eye e1"></div><div class="eye e2"></div></div>' : ''}</div>`;
+
+const hhmm = (h, m) => `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+const mmss = (sec) => `${String(Math.floor(sec / 60)).padStart(2, '0')}:${String(Math.ceil(sec) % 60).padStart(2, '0')}`;
+
+const cosmos = document.getElementById('cosmos');
+for (let i = 0; i < 48; i++) {
+  const s = document.createElement('div');
+  s.className = 'star';
+  s.style.left = `${(i * 37 + 11) % 98 + 1}%`;
+  s.style.top = `${(i * 53 + 19) % 94 + 3}%`;
+  s.style.opacity = (0.25 + (i % 5) * 0.14).toFixed(2);
+  cosmos.append(s);
+}
+
+const modal = document.getElementById('modal');
+const cards = document.getElementById('cards');
+const pickCount = document.getElementById('pickCount');
+const moveIn = document.getElementById('moveIn');
+const summaryModal = document.getElementById('summaryModal');
+const newRunBtn = document.getElementById('newRun');
+const endRunBtn = document.getElementById('endRun');
+const modeNote = document.getElementById('modeNote');
+const alignCountEl = document.getElementById('alignCount');
+
+const radBar = document.getElementById('radBar');
+const gravBar = document.getElementById('gravBar');
+const radVal = document.getElementById('radVal');
+const gravVal = document.getElementById('gravVal');
+const harmonyBanner = document.getElementById('harmonyBanner');
+const momentLog = document.getElementById('momentLog');
+
+let radiance = 0;
+let gravity = 0;
+let currentWhere = {};
+let runActive = false;
+let runLeft = 0;
+let runMoments = [];
+let picks = [];
+
+function saveState() {
+  try { localStorage.setItem(KEY, JSON.stringify({ residents: mine, alignments })); } catch {}
+}
+function renderAlignCount() {
+  alignCountEl.textContent = alignments > 0 ? `Alignments: ${alignments}` : '';
+}
+renderAlignCount();
+
+function drawPicker() {
+  cards.innerHTML = '';
+  for (const id of ids) {
+    const selected = picks.includes(id);
+    const c = document.createElement('div');
+    c.className = 'card' + (selected ? ' chosen' : '');
+    c.innerHTML = head(id) + `${PLANETS[id].name}<br>${PLANETS[id].type}`;
+    c.onclick = () => {
+      if (selected) picks = picks.filter((x) => x !== id);
+      else if (picks.length < 5) picks.push(id);
+      drawPicker();
+    };
+    cards.append(c);
+  }
+  pickCount.textContent = `Click 5 planets to invite out for a 1-minute cosmic gathering (${picks.length}/5 selected).`;
+  moveIn.disabled = picks.length !== 5;
+}
+
+newRunBtn.onclick = () => {
+  if (runActive) return;
+  picks = [...mine];
+  drawPicker();
+  modal.classList.add('open');
+};
+document.getElementById('cancelPick').onclick = () => modal.classList.remove('open');
+
+moveIn.onclick = () => {
+  mine = [...picks];
+  saveState();
+  modal.classList.remove('open');
+  startRun();
+};
+
+function startRun() {
+  runActive = true;
+  runLeft = 60;
+  runMoments = [];
+  radiance = 0;
+  gravity = 0;
+  renderMeters();
+  newRunBtn.disabled = true;
+  newRunBtn.textContent = 'Gathering 01:00';
+  endRunBtn.style.display = '';
+  modeNote.textContent = '1-minute gathering: your 5 are out alongside the real-time cosmos.';
+  momentLog.textContent = 'Your 5 planets stepped out to mingle...';
+
+  for (const id of mine) {
+    if (currentWhere[id] !== 'out') agents[id].placed = false;
+  }
+  syncWhere();
+}
+
+function finishRun() {
+  runActive = false;
+  newRunBtn.disabled = false;
+  newRunBtn.textContent = 'Gather 5 planets for 1 min';
+  endRunBtn.style.display = 'none';
+  modeNote.textContent = 'Real-time mode: planets follow your local clock.';
+
+  const aligned = radiance >= 50 && gravity >= 50;
+  if (aligned) {
+    alignments += 1;
+    saveState();
+    renderAlignCount();
+  }
+
+  document.getElementById('summaryTitle').textContent = aligned ? '✨ Cosmic Alignment Achieved!' : 'Gathering Complete!';
+  document.getElementById('summarySub').textContent = aligned
+    ? 'Your 5 planets balanced Radiance and Gravity into harmony.'
+    : `Shared ${runMoments.length} moment${runMoments.length === 1 ? '' : 's'} — try a different mix to reach 50%+ on both!`;
+  document.getElementById('sumRad').textContent = `${radiance}%`;
+  document.getElementById('sumGrav').textContent = `${gravity}%`;
+
+  const sumList = document.getElementById('sumList');
+  sumList.innerHTML = runMoments.length
+    ? runMoments.map(m => `<li>${m}</li>`).join('')
+    : '<li>A quiet minute under the stars.</li>';
+  summaryModal.classList.add('open');
+}
+
+endRunBtn.onclick = finishRun;
+document.getElementById('againBtn').onclick = () => {
+  summaryModal.classList.remove('open');
+  picks = [...mine];
+  drawPicker();
+  modal.classList.add('open');
+};
+document.getElementById('realtimeBtn').onclick = () => {
+  summaryModal.classList.remove('open');
+  radiance = 0;
+  gravity = 0;
+  renderMeters();
+  syncWhere();
+};
+
+function renderMeters() {
+  radBar.style.width = `${radiance}%`;
+  gravBar.style.width = `${gravity}%`;
+  radVal.textContent = `${radiance}%`;
+  gravVal.textContent = `${gravity}%`;
+  const aligned = radiance >= 50 && gravity >= 50;
+  harmonyBanner.classList.toggle('aligned', aligned);
+  cosmos.classList.toggle('aligned', aligned);
+}
+
+// Orbit lines (SVG ellipses for pixel-exact alignment)
+const svgNS = 'http://www.w3.org/2000/svg';
+const orbitSvg = document.createElementNS(svgNS, 'svg');
+orbitSvg.setAttribute('class', 'orbit-svg');
+cosmos.prepend(orbitSvg);
+
+const orbitEls = {};
+for (const id of ids) {
+  const o = document.createElementNS(svgNS, 'ellipse');
+  o.setAttribute('class', 'orbit-ellipse');
+  orbitSvg.append(o);
+  orbitEls[id] = o;
+}
+
+function getHomeXY(id, W, H) {
+  const idx = ids.indexOf(id);
+  const rx = 80 + idx * 27;
+  const ry = 46 + idx * 14.5;
+  const isMine = mine.includes(id);
+  const group = isMine ? mine : others();
+  const slot = group.indexOf(id);
+  const deg = (isMine ? 1 : -1) * (32 + slot * 29);
+  const ang = (deg * Math.PI) / 180;
+  return { x: W / 2 + Math.cos(ang) * rx, y: H / 2 + Math.sin(ang) * ry, rx, ry, ang, idx };
+}
+
+const sunEl = cosmos.querySelector('.sun');
+function layoutOrbits() {
+  const W = cosmos.clientWidth || 720;
+  const H = cosmos.clientHeight || 420;
+  if (sunEl) sunEl.style.zIndex = Math.round(H / 2);
+  orbitSvg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  for (const id of ids) {
+    const home = getHomeXY(id, W, H);
+    orbitEls[id].setAttribute('cx', W / 2);
+    orbitEls[id].setAttribute('cy', H / 2);
+    orbitEls[id].setAttribute('rx', home.rx);
+    orbitEls[id].setAttribute('ry', home.ry);
+  }
+}
+
+function syncWhere() {
+  const now = new Date();
+  const date = now.toLocaleDateString('en-CA'), h = now.getHours(), m = now.getMinutes();
+  document.getElementById('clock').textContent = hhmm(h, m);
+
+  const rt = streetHour(ids, date, h, m).where;
+  if (runActive) {
+    const w = {};
+    for (const id of ids) w[id] = mine.includes(id) ? 'out' : rt[id];
+    currentWhere = w;
+  } else {
+    currentWhere = rt;
+  }
+  document.getElementById('acrossNames').textContent = others().map(id => PLANETS[id].name).join(' · ');
+  document.getElementById('mineNames').textContent = mine.map(id => PLANETS[id].name).join(' · ');
+}
+
+const SPEED = MOTION.speed;
+const MIN_SEP = MOTION.minSep;
+const SUN_KEEP_OUT = MOTION.sunKeepOut;
+const SIGHT_DIST = MOTION.sightDist;
+const CHAT_DIST = MOTION.chatDist;
+const TALK_FRAMES = ['💬', '…', '💬', '🎵'];
+
+const SIZE = {
+  jupiter: 44, saturn: 40, uranus: 36, neptune: 35,
+  earth: 31, venus: 30, mars: 27, mercury: 25, moon: 24, pluto: 22,
+};
+
+const agents = {};
+for (const id of ids) {
+  const sz = SIZE[id] || 34;
+  const el = document.createElement('div');
+  el.className = 'walker';
+  el.style.setProperty('--sz', `${sz}px`);
+  el.innerHTML = head(id, true) + `<div class="name">${PLANETS[id].name}</div><div class="bubble"></div>`;
+  cosmos.append(el);
+  agents[id] = {
+    id, el, sz,
+    bubble: el.querySelector('.bubble'),
+    e1: el.querySelector('.e1'),
+    e2: el.querySelector('.e2'),
+    x: 0, y: 0, tx: 0, ty: 0,
+    orbitOffset: 0,
+    facing: Math.random() * Math.PI * 2,
+    state: 'idle',
+    timer: 1 + Math.random() * 2.5,
+    bobPhase: Math.random() * Math.PI * 2,
+    partner: null,
+    isInitiator: false,
+    chatElapsed: 0,
+    reactElapsed: 0,
+    cooldown: 2 + Math.random() * 3,
+    outcome: null,
+    hobby: '',
+    hobbyTimer: 10 + Math.random() * 25,
+    placed: false,
   };
 }
 
-// Where a neighbour is at a given time: asleep, in (awake at home) or out (wandering the solar system).
-export function whereIs(id, date, hour, minute) {
-  if (isAsleep(PLANETS[id].type, hour + minute / 60)) return 'asleep';
-  return rng(`${date}|${hour}|${id}`)() < OUT_CHANCE ? 'out' : 'in';
+function placeAtHome(a, isOut, W, H) {
+  const home = getHomeXY(a.id, W, H);
+  if (isOut) {
+    a.x = home.x - Math.cos(home.ang) * 24;
+    a.y = home.y - Math.sin(home.ang) * 20;
+    a.facing = home.ang + Math.PI;
+    a.state = Math.random() < 0.5 ? 'idle' : 'stroll';
+    a.timer = 0.8 + Math.random() * 2.2;
+    if (a.state === 'stroll') pickTarget(a, W, H);
+  } else {
+    a.x = home.x; a.y = home.y;
+    a.facing = home.ang + Math.PI;
+    a.state = 'idle';
+  }
+  a.placed = true;
 }
 
-// The street's hour so far: minute by minute, two neighbours who are out may meet.
-export function streetHour(ids, date, hour, nowMinute) {
-  const meetings = [];
-  let radiance = 0;
-  let gravity = 0;
-  for (let m = 0; m <= nowMinute; m++) {
-    const out = ids.filter((id) => whereIs(id, date, hour, m) === 'out');
-    const rand = rng(`${date}|${hour}|${m}|meet`);
-    if (out.length < 2 || rand() >= MEET_CHANCE) continue;
-    const a = out[Math.floor(rand() * out.length)];
-    let b = a;
-    while (b === a) b = out[Math.floor(rand() * out.length)];
-    const score = points(PLANETS[a].type, PLANETS[b].type);
-    const outcome = OUTCOME[score];
-    if (outcome.meter === 'radiance') radiance = Math.min(100, radiance + outcome.gain);
-    else gravity = Math.min(100, gravity + outcome.gain);
-    meetings.push({ minute: m, a, b, score, ...outcome });
+function pickTarget(a, W, H) {
+  const pad = 42;
+  for (let attempt = 0; attempt < 8; attempt++) {
+    const ang = Math.random() * Math.PI * 2;
+    const dist = 48 + Math.random() * 86;
+    const cx = Math.max(pad, Math.min(W - pad, a.x + Math.cos(ang) * dist));
+    const cy = Math.max(pad, Math.min(H - pad - 10, a.y + Math.sin(ang) * dist));
+    const clearSun = Math.hypot(cx - W / 2, cy - H / 2) >= SUN_KEEP_OUT;
+    const clear = clearSun && Object.values(agents).every(o =>
+      o.id === a.id || !o.placed || Math.hypot(o.x - cx, o.y - cy) >= MIN_SEP
+    );
+    a.tx = cx; a.ty = cy;
+    if (clear) break;
   }
-  const where = {};
-  for (const id of ids) where[id] = whereIs(id, date, hour, nowMinute);
-  return { meetings, where, radiance, gravity };
+  a.timer = 4.5;
 }
+
+function checkNearby(a, outList) {
+  if (a.cooldown > 0) return;
+  for (const o of outList) {
+    if (o.id === a.id || o.cooldown > 0) continue;
+    if (o.state !== 'idle' && o.state !== 'stroll') continue;
+    if (Math.hypot(o.x - a.x, o.y - a.y) < SIGHT_DIST) {
+      if (Math.random() < MOTION.talkChance) {
+        a.state = o.state = 'notice';
+        a.partner = o; o.partner = a;
+        a.isInitiator = true; o.isInitiator = false;
+        a.timer = o.timer = 0.7;
+        a.outcome = o.outcome = null;
+      } else {
+        a.cooldown = o.cooldown = 5;
+        a.facing = Math.atan2(o.y - a.y, o.x - a.x);
+      }
+      return;
+    }
+  }
+}
+
+let simTime = 0;
+let lastTs = performance.now();
+
+function tick(ts) {
+  const dt = Math.min(0.05, (ts - lastTs) / 1000);
+  lastTs = ts;
+  simTime += dt;
+
+  if (runActive) {
+    runLeft = Math.max(0, runLeft - dt);
+    newRunBtn.textContent = `Gathering ${mmss(runLeft)}`;
+    if (runLeft <= 0) finishRun();
+  }
+
+  const W = cosmos.clientWidth || 720;
+  const H = cosmos.clientHeight || 420;
+  layoutOrbits();
+
+  const outList = [];
+  for (const id of ids) {
+    const a = agents[id];
+    const where = currentWhere[id] || 'in';
+    a.el.className = `walker ${where}`;
+
+    if (where !== 'out') {
+      const home = getHomeXY(id, W, H);
+      const orbitRate = 0.045 / (1 + home.idx * 0.45);
+      a.orbitOffset += orbitRate * dt;
+      const ang = home.ang + a.orbitOffset;
+      a.x = W / 2 + Math.cos(ang) * home.rx;
+      a.y = H / 2 + Math.sin(ang) * home.ry;
+      a.facing = ang + Math.PI / 2;
+      a.partner = null;
+      a.placed = true;
+
+      if (where === 'in') {
+        a.hobbyTimer -= dt;
+        if (a.hobbyTimer <= 0) {
+          if (a.hobby) {
+            a.hobby = '';
+            a.hobbyTimer = 25 + Math.random() * 20;
+          } else {
+            const list = HOBBIES[PLANETS[id].type] || ['📖'];
+            a.hobby = list[Math.floor(Math.random() * list.length)];
+            a.hobbyTimer = 30 + Math.random() * 25;
+          }
+        }
+      } else {
+        a.hobby = '';
+      }
+    } else {
+      a.hobby = '';
+      if (!a.placed) placeAtHome(a, true, W, H);
+      outList.push(a);
+    }
+  }
+
+  for (const a of outList) {
+    a.timer -= dt;
+    if (a.cooldown > 0) a.cooldown -= dt;
+
+    if (a.state === 'idle') {
+      if (Math.random() < dt * 0.45) a.facing += (Math.random() - 0.5) * 1.4;
+      if (a.timer <= 0) { pickTarget(a, W, H); a.state = 'stroll'; }
+      checkNearby(a, outList);
+    } else if (a.state === 'stroll') {
+      const dx = a.tx - a.x, dy = a.ty - a.y, d = Math.hypot(dx, dy);
+      if (d < 5 || a.timer <= 0) {
+        a.state = 'idle';
+        a.timer = Math.max(0.6, MOTION.avgPause * (0.5 + Math.random()));
+      } else {
+        a.x += (dx / d) * SPEED * dt;
+        a.y += (dy / d) * SPEED * dt;
+        a.facing = Math.atan2(dy, dx);
+        a.bobPhase += dt * (SPEED * 0.28);
+      }
+      checkNearby(a, outList);
+    } else if (a.state === 'notice') {
+      const p = a.partner;
+      if (!p || currentWhere[p.id] !== 'out') { a.state = 'idle'; a.timer = 1; continue; }
+      a.facing = Math.atan2(p.y - a.y, p.x - a.x);
+      if (a.timer <= 0) {
+        const dx = p.x - a.x, dy = p.y - a.y, d = Math.hypot(dx, dy);
+        if (d > CHAT_DIST) {
+          a.x += (dx / d) * SPEED * 1.1 * dt;
+          a.y += (dy / d) * SPEED * 1.1 * dt;
+          a.bobPhase += dt * (SPEED * 0.3);
+        } else if (p.state === 'notice') {
+          const score = points(PLANETS[a.id].type, PLANETS[p.id].type);
+          const out = OUTCOME[score];
+          a.state = p.state = 'pre_beat';
+          a.timer = p.timer = MOTION.preBeatSec;
+          a.outcome = p.outcome = out;
+        }
+      }
+    } else if (a.state === 'pre_beat') {
+      if (a.partner) a.facing = Math.atan2(a.partner.y - a.y, a.partner.x - a.x);
+      if (a.timer <= 0) {
+        a.state = 'chat';
+        a.timer = MOTION.chatSec;
+        a.chatElapsed = 0;
+        if (a.isInitiator && a.partner) {
+          momentLog.textContent = `${PLANETS[a.id].name} and ${PLANETS[a.partner.id].name} stopped to chat...`;
+        }
+      }
+    } else if (a.state === 'chat') {
+      a.chatElapsed += dt;
+      if (a.partner) a.facing = Math.atan2(a.partner.y - a.y, a.partner.x - a.x);
+      if (a.timer <= 0) { a.state = 'beat'; a.timer = MOTION.beatSec; }
+    } else if (a.state === 'beat') {
+      if (a.partner) a.facing = Math.atan2(a.partner.y - a.y, a.partner.x - a.x);
+      if (a.timer <= 0) {
+        a.state = 'react';
+        a.timer = MOTION.reactSec;
+        a.reactElapsed = 0;
+        if (a.isInitiator && a.partner && a.outcome) {
+          const countsForRun = !runActive || mine.includes(a.id) || mine.includes(a.partner.id);
+          if (countsForRun) {
+            if (a.outcome.meter === 'radiance') radiance = Math.min(100, radiance + a.outcome.gain);
+            else gravity = Math.min(100, gravity + a.outcome.gain);
+            renderMeters();
+          }
+          const line = `${PLANETS[a.id].name} & ${PLANETS[a.partner.id].name} ${a.outcome.label} ${a.outcome.emote}`;
+          momentLog.textContent = line;
+          if (runActive && countsForRun) runMoments.push(line);
+        }
+      }
+    } else if (a.state === 'react') {
+      a.reactElapsed += dt;
+      if (a.partner) a.facing = Math.atan2(a.partner.y - a.y, a.partner.x - a.x);
+      if (a.timer <= 0) {
+        a.state = 'idle';
+        a.timer = 1.5 + Math.random() * 2.5;
+        a.cooldown = 11;
+        a.partner = null;
+        a.outcome = null;
+      }
+    }
+  }
+
+  const pad = 34;
+  for (const a of outList) {
+    const sdx = a.x - W / 2, sdy = a.y - H / 2;
+    const sd = Math.hypot(sdx, sdy);
+    const minSun = SUN_KEEP_OUT + a.sz * 0.25;
+    if (sd < minSun) {
+      const nx = sd < 0.001 ? 1 : sdx / sd;
+      const ny = sd < 0.001 ? 0 : sdy / sd;
+      const push = Math.min(minSun - sd, 120 * dt);
+      a.x += nx * push;
+      a.y += ny * push;
+    }
+  }
+  for (let i = 0; i < outList.length; i++) {
+    for (let j = i + 1; j < outList.length; j++) {
+      const a = outList[i], b = outList[j];
+      const dx = b.x - a.x, dy = b.y - a.y;
+      let d = Math.hypot(dx, dy);
+      if (d < MIN_SEP) {
+        const nx = d < 0.001 ? 1 : dx / d;
+        const ny = d < 0.001 ? 0 : dy / d;
+        const push = Math.min(MIN_SEP - d, 110 * dt);
+        const aLock = a.state === 'pre_beat' || a.state === 'chat' || a.state === 'beat' || a.state === 'react';
+        const bLock = b.state === 'pre_beat' || b.state === 'chat' || b.state === 'beat' || b.state === 'react';
+        if (aLock && !bLock) { b.x += nx * push; b.y += ny * push; }
+        else if (bLock && !aLock) { a.x -= nx * push; a.y -= ny * push; }
+        else { a.x -= nx * push * 0.5; a.y -= ny * push * 0.5; b.x += nx * push * 0.5; b.y += ny * push * 0.5; }
+      }
+    }
+  }
+
+  for (const id of ids) {
+    const a = agents[id];
+    const where = currentWhere[id] || 'in';
+    let offX = 0, offY = 0, bubbleText = '';
+
+    if (where === 'asleep') {
+      bubbleText = '💤';
+    } else if (where === 'in') {
+      bubbleText = a.hobby;
+    } else if (where === 'out') {
+      a.x = Math.max(pad, Math.min(W - pad, a.x));
+      a.y = Math.max(pad, Math.min(H - pad - 12, a.y));
+
+      if (a.state === 'stroll') {
+        offY = -Math.abs(Math.sin(a.bobPhase)) * 3.5;
+      } else if (a.state === 'notice') {
+        bubbleText = '!';
+      } else if (a.state === 'chat') {
+        const turn = Math.floor(a.chatElapsed / MOTION.talkTurnSec) % 2;
+        const speaking = (a.isInitiator && turn === 0) || (!a.isInitiator && turn === 1);
+        if (speaking) {
+          offY = -Math.abs(Math.sin(a.chatElapsed * 5.5)) * 3.5;
+          bubbleText = TALK_FRAMES[Math.floor(a.chatElapsed / MOTION.talkTurnSec) % TALK_FRAMES.length];
+        }
+      } else if (a.state === 'react' && a.outcome) {
+        bubbleText = a.outcome.emote;
+        if (a.outcome.kind === 'sparkle') offY = -Math.abs(Math.sin(simTime * 5)) * 7.5;
+        else if (a.outcome.kind === 'music') { offX = Math.sin(simTime * 3) * 2.5; offY = -Math.abs(Math.sin(simTime * 3)) * 3; }
+        else if (a.outcome.kind === 'warm') offY = -Math.abs(Math.sin(simTime * 2.5)) * 2.5;
+        else if (a.outcome.kind === 'hug' && a.partner) {
+          const hugCurve = Math.sin(Math.min(1, a.reactElapsed / MOTION.reactSec) * Math.PI);
+          const dx = a.partner.x - a.x, dy = a.partner.y - a.y, d = Math.hypot(dx, dy) || 1;
+          const lean = Math.max(0, (d - 32) * 0.5) * hugCurve;
+          offX = (dx / d) * lean;
+          offY = (dy / d) * lean;
+        }
+      }
+    }
+
+    a.el.style.left = `${(a.x + offX).toFixed(1)}px`;
+    a.el.style.top = `${(a.y + offY).toFixed(1)}px`;
+    a.el.style.zIndex = Math.round(a.y + offY);
+
+    const r = a.sz / 2;
+    const scale = a.sz / 34;
+    const fx = r + Math.cos(a.facing) * (5.5 * scale);
+    const fy = r + Math.sin(a.facing) * (4.5 * scale);
+    const ex = -Math.sin(a.facing) * (4 * scale);
+    const ey = Math.cos(a.facing) * (4 * scale);
+    a.e1.style.left = `${(fx + ex).toFixed(1)}px`; a.e1.style.top = `${(fy + ey).toFixed(1)}px`;
+    a.e2.style.left = `${(fx - ex).toFixed(1)}px`; a.e2.style.top = `${(fy - ey).toFixed(1)}px`;
+
+    a.bubble.textContent = bubbleText;
+    a.bubble.style.display = bubbleText ? '' : 'none';
+  }
+
+  requestAnimationFrame(tick);
+}
+
+syncWhere();
+setInterval(syncWhere, 15000);
+requestAnimationFrame(tick);
+</script>
+</body>
+</html>
