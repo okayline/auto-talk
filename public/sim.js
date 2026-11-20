@@ -55,6 +55,18 @@ export const OUTCOME = {
   1: { kind: 'hug',     emote: '💗', label: 'shared a calm hug',      meter: 'gravity',  gain: 20 },
 };
 
+// Cozy at-home activities per personality (shown intermittently while 'in').
+export const HOBBIES = {
+  PRIM:     ['📖', '🧶', '🍰'],
+  DREAMY:   ['🍩', '🍜', '💭'],
+  PEPPY:    ['🎤', '💃', '📸'],
+  JOCK:     ['💪', '🏋️', '🏃'],
+  HAUGHTY:  ['☕', '🪞', '💅'],
+  GRUFF:    ['🪴', '🍵', '📻'],
+  SLY:      ['👔', '🪞', '🎸'],
+  TSUNDERE: ['🎮', '🔭', '🎧'],
+};
+
 // Hours asleep, local time [fall asleep, wake up]. New Leaf's hours (Nookipedia, personality pages).
 export const SLEEP = {
   PRIM:     [0, 6],
