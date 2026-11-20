@@ -14,6 +14,22 @@ export const PLANETS = {
   moon:    { name: 'Moon',    type: 'DREAMY',   color: '#d8d8d0' },
 };
 
+// Movement, spacing, and conversation pacing (tuned for calm Animal Crossing-style wandering).
+export const MOTION = {
+  speed:       28,    // px/sec stroll speed
+  avgPause:    3.0,   // seconds average idle pause
+  talkChance:  0.45,  // probability two nearby planets stop to chat
+  minSep:      52,    // personal-space circle (px)
+  sunKeepOut:  48,    // buffer around the Sun's center (px)
+  sightDist:   98,    // distance to notice a neighbour (px)
+  chatDist:    54,    // conversational spacing (px)
+  preBeatSec:  0.8,   // quiet beat after walking up before talking
+  chatSec:     4.6,   // total chat duration
+  talkTurnSec: 1.45,  // seconds per speaking turn
+  beatSec:     1.0,   // quiet beat after chat before reaction
+  reactSec:    2.8,   // reaction animation duration
+};
+
 // Animal Crossing: New Leaf's personality compatibility points (Nookipedia, "Compatibility"),
 // with Normal=PRIM, Lazy=DREAMY, Snooty=HAUGHTY, Cranky=GRUFF, Smug=SLY, Big sister=TSUNDERE.
 const ORDER = ['PRIM', 'DREAMY', 'PEPPY', 'JOCK', 'HAUGHTY', 'GRUFF', 'SLY', 'TSUNDERE'];
