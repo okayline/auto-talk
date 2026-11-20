@@ -144,7 +144,7 @@
 <div class="topbar">
   <button id="newRun">Gather 5 planets for 1 min</button>
   <button id="endRun" class="ghost" style="display:none;">End run</button>
-  <div class="note" id="modeNote">Real-time mode: planets follow your local clock.</div>
+  <div class="note" id="modeNote">Real time mode: --:--</div>
 </div>
 
 <!-- Pick 5 Modal -->
@@ -187,11 +187,9 @@
   </div>
   <div class="moment-log" id="momentLog">Watching the cosmos...</div>
 
-  <div class="side"><span>across the street (top orbits)</span><span id="acrossNames"></span></div>
   <div class="cosmos" id="cosmos">
     <div class="sun"></div>
   </div>
-  <div class="side"><span>your side (bottom orbits)</span><span id="mineNames"></span></div>
   <div id="ddfoot"></div>
 </div>
 <script src="https://dungeon-items.ddddungeon.workers.dev/footer.js" data-version="v0.10"></script>
@@ -312,7 +310,7 @@ function startRun() {
   newRunBtn.disabled = true;
   newRunBtn.textContent = 'Gathering 01:00';
   endRunBtn.style.display = '';
-  modeNote.textContent = '1-minute gathering: your 5 are out alongside the real-time cosmos.';
+  modeNote.textContent = 'Real time mode: off during runs';
   momentLog.textContent = 'Your 5 planets stepped out to mingle...';
 
   for (const id of mine) {
@@ -326,7 +324,8 @@ function finishRun() {
   newRunBtn.disabled = false;
   newRunBtn.textContent = 'Gather 5 planets for 1 min';
   endRunBtn.style.display = 'none';
-  modeNote.textContent = 'Real-time mode: planets follow your local clock.';
+  const _now = new Date();
+  modeNote.textContent = `Real time mode: ${hhmm(_now.getHours(), _now.getMinutes())}`;
 
   const aligned = radiance >= 50 && gravity >= 50;
   if (aligned) {
@@ -419,6 +418,7 @@ function syncWhere() {
   const now = new Date();
   const date = now.toLocaleDateString('en-CA'), h = now.getHours(), m = now.getMinutes();
   document.getElementById('clock').textContent = hhmm(h, m);
+  if (!runActive) modeNote.textContent = `Real time mode: ${hhmm(h, m)}`;
 
   const rt = streetHour(ids, date, h, m).where;
   if (runActive) {
@@ -428,8 +428,6 @@ function syncWhere() {
   } else {
     currentWhere = rt;
   }
-  document.getElementById('acrossNames').textContent = others().map(id => PLANETS[id].name).join(' · ');
-  document.getElementById('mineNames').textContent = mine.map(id => PLANETS[id].name).join(' · ');
 }
 
 const SPEED = MOTION.speed;
