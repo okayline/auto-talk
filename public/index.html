@@ -470,7 +470,7 @@ for (const id of ids) {
     cooldown: 2 + Math.random() * 3,
     outcome: null,
     hobby: '',
-    hobbyTimer: 10 + Math.random() * 25,
+    hobbyTimer: 15 + Math.random() * 55,
     placed: false,
   };
 }
@@ -570,11 +570,18 @@ function tick(ts) {
         if (a.hobbyTimer <= 0) {
           if (a.hobby) {
             a.hobby = '';
-            a.hobbyTimer = 25 + Math.random() * 20;
+            a.hobbyTimer = 35 + Math.random() * 45;
           } else {
-            const list = HOBBIES[PLANETS[id].type] || ['📖'];
-            a.hobby = list[Math.floor(Math.random() * list.length)];
-            a.hobbyTimer = 30 + Math.random() * 25;
+            const inIds = ids.filter(k => (currentWhere[k] || 'in') === 'in');
+            const activeHobbies = inIds.filter(k => agents[k].hobby).length;
+            const maxHobbies = Math.max(1, Math.floor(inIds.length / 2));
+            if (activeHobbies < maxHobbies && Math.random() < 0.65) {
+              const list = HOBBIES[PLANETS[id].type] || ['📖'];
+              a.hobby = list[Math.floor(Math.random() * list.length)];
+              a.hobbyTimer = 28 + Math.random() * 22;
+            } else {
+              a.hobbyTimer = 14 + Math.random() * 18;
+            }
           }
         }
       } else {
