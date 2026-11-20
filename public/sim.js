@@ -33,10 +33,10 @@ export function points(typeA, typeB) {
 
 // Equal-warmth shared moments: 5 = outward Radiance, 1 = calm emotional Gravity.
 export const OUTCOME = {
-  5: { kind: 'sparkle', emote: '✨', label: 'shared a big laugh',     meter: 'radiance', gain: 15 },
-  3: { kind: 'music',   emote: '🎵', label: 'hummed a tune together', meter: 'radiance', gain: 10 },
-  2: { kind: 'warm',    emote: '☀️', label: 'had a sweet catch-up',   meter: 'gravity',  gain: 10 },
-  1: { kind: 'hug',     emote: '💗', label: 'shared a calm hug',      meter: 'gravity',  gain: 15 },
+  5: { kind: 'sparkle', emote: '✨', label: 'shared a big laugh',     meter: 'radiance', gain: 20 },
+  3: { kind: 'music',   emote: '🎵', label: 'hummed a tune together', meter: 'radiance', gain: 14 },
+  2: { kind: 'warm',    emote: '🌼', label: 'had a sweet catch-up',   meter: 'gravity',  gain: 14 },
+  1: { kind: 'hug',     emote: '💗', label: 'shared a calm hug',      meter: 'gravity',  gain: 20 },
 };
 
 // Hours asleep, local time [fall asleep, wake up]. New Leaf's hours (Nookipedia, personality pages).
