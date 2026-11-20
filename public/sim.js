@@ -1,6 +1,6 @@
 // auto-talk: the street's day, worked out from a seed. No page code here, so it can be tested in node.
 
-// The 10 neighbours (8 types; Pluto and the Moon share GRUFF and DREAMY): a planet, its personality type, and a placeholder look (head colour).
+// The 10 neighbours (8 types; Pluto and the Moon share GRUFF and DREAMY): a planet, its personality type, and a look (head colour).
 export const PLANETS = {
   mercury: { name: 'Mercury', type: 'SLY',      color: '#9a948c' },
   venus:   { name: 'Venus',   type: 'HAUGHTY',  color: '#e3c27a' },
@@ -31,20 +31,24 @@ export function points(typeA, typeB) {
   return POINTS[ORDER.indexOf(typeA)][ORDER.indexOf(typeB)];
 }
 
-// How a meeting ends. Animal Crossing's villager conversations end happy, sad or angry; which score gives which is ours
-// (the table has four scores, the game has three endings).
+// Equal-warmth shared moments: 5 = extroverted joy, 1 = calm emotional connection.
 export const OUTCOME = {
-  5: { emote: '😊', ends: 'happy' },
-  3: { emote: '😊', ends: 'happy' },
-  2: { emote: '😢', ends: 'sad' },
-  1: { emote: '💢', ends: 'angry' },
+  5: { kind: 'sparkle', emote: '✨', label: 'shared a big laugh',     meter: 'liveliness', gain: 18 },
+  3: { kind: 'music',   emote: '🎵', label: 'hummed a tune together', meter: 'liveliness', gain: 12 },
+  2: { kind: 'warm',    emote: '☀️', label: 'had a sweet catch-up',   meter: 'tenderness', gain: 12 },
+  1: { kind: 'hug',     emote: '💗', label: 'shared a calm hug',      meter: 'tenderness', gain: 18 },
 };
 
 // Hours asleep, local time [fall asleep, wake up]. New Leaf's hours (Nookipedia, personality pages).
-// SLY (smug) and TSUNDERE (big sister) aren't found yet, so they don't sleep.
 export const SLEEP = {
-  PRIM: [0, 6], JOCK: [0, 7], DREAMY: [23, 9], PEPPY: [1, 9],
-  HAUGHTY: [2, 9.5], GRUFF: [4, 10],
+  PRIM:     [0, 6],
+  JOCK:     [0, 7],
+  DREAMY:   [23, 9],
+  PEPPY:    [1, 9],
+  HAUGHTY:  [2, 9.5],
+  GRUFF:    [4, 10],
+  SLY:      [2, 8.5],
+  TSUNDERE: [3, 11],
 };
 export function isAsleep(type, hour) {
   if (!SLEEP[type]) return false;
@@ -52,8 +56,6 @@ export function isAsleep(type, hour) {
   return a < b ? hour >= a && hour < b : hour >= a || hour < b;
 }
 
-// Ours, not Animal Crossing's: something has to decide home or out, and when two who are out meet.
-// Animal Crossing's own rules for these aren't found yet.
 export const OUT_CHANCE = 0.6;     // awake neighbours outside for an hour
 export const MEET_CHANCE = 0.5;    // a meeting in a given minute, when 2 or more are out
 
@@ -75,17 +77,17 @@ function rng(seedText) {
   };
 }
 
-// Where a neighbour is at a given time: asleep, in (awake at home) or out (wandering the road).
-// Out or in is decided once per hour, the same for everyone who opens the page.
+// Where a neighbour is at a given time: asleep, in (awake at home) or out (wandering the solar system).
 export function whereIs(id, date, hour, minute) {
   if (isAsleep(PLANETS[id].type, hour + minute / 60)) return 'asleep';
   return rng(`${date}|${hour}|${id}`)() < OUT_CHANCE ? 'out' : 'in';
 }
 
 // The street's hour so far: minute by minute, two neighbours who are out may meet.
-// ids: all 10 neighbours on the street. Returns the meetings and where everyone is now.
 export function streetHour(ids, date, hour, nowMinute) {
   const meetings = [];
+  let liveliness = 0;
+  let tenderness = 0;
   for (let m = 0; m <= nowMinute; m++) {
     const out = ids.filter((id) => whereIs(id, date, hour, m) === 'out');
     const rand = rng(`${date}|${hour}|${m}|meet`);
@@ -94,9 +96,12 @@ export function streetHour(ids, date, hour, nowMinute) {
     let b = a;
     while (b === a) b = out[Math.floor(rand() * out.length)];
     const score = points(PLANETS[a].type, PLANETS[b].type);
-    meetings.push({ minute: m, a, b, score, ...OUTCOME[score] });
+    const outcome = OUTCOME[score];
+    if (outcome.meter === 'liveliness') liveliness = Math.min(100, liveliness + outcome.gain);
+    else tenderness = Math.min(100, tenderness + outcome.gain);
+    meetings.push({ minute: m, a, b, score, ...outcome });
   }
   const where = {};
   for (const id of ids) where[id] = whereIs(id, date, hour, nowMinute);
-  return { meetings, where };
+  return { meetings, where, liveliness, tenderness };
 }
