@@ -24,9 +24,9 @@ export const MOTION = {
   sightDist:   98,    // distance to notice a neighbour (px)
   chatDist:    54,    // conversational spacing (px)
   preBeatSec:  0.8,   // quiet beat after walking up before talking
-  chatSec:     4.6,   // total chat duration
-  talkTurnSec: 1.45,  // seconds per speaking turn
-  beatSec:     1.0,   // quiet beat after chat before reaction
+  chatSec:     5.4,   // total chat duration (4 full turns)
+  talkTurnSec: 1.35,  // seconds per speaking turn
+  beatSec:     1.2,   // quiet beat after chat before reaction
   reactSec:    2.8,   // reaction animation duration
 };
 
