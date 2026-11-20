@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>auto-talk</title>
+<title>Cosmic Talk</title>
 <style>
   body { background: #0d1022; color: #e8e8f0; font-family: "Courier New", monospace; margin: 0; padding: 20px; }
   h1 { color: #ff8fc8; font-size: 20px; margin: 0 0 12px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
@@ -81,15 +81,6 @@
     stroke-width: 1;
     stroke-dasharray: 2 4;
   }
-  .home-dot {
-    position: absolute;
-    width: 10px; height: 10px;
-    margin: -5px 0 0 -5px;
-    border-radius: 50%;
-    border: 1px dashed rgba(245, 215, 122, 0.35);
-    background: rgba(245, 215, 122, 0.05);
-    pointer-events: none;
-  }
   .star {
     position: absolute;
     width: 2px; height: 2px;
@@ -107,6 +98,7 @@
     will-change: left, top;
   }
   .walker.in, .walker.asleep { opacity: 0.48; }
+  .walker.asleep .head { filter: grayscale(100%); }
   .walker.asleep .eye,
   .walker.in .eye {
     width: 5px; height: 2px;
@@ -131,35 +123,25 @@
   .head.tilted { transform: rotate(90deg); }
   .bubble {
     position: absolute;
-    top: -25px; left: 50%;
-    transform: translateX(-50%);
+    top: -14px; left: calc(var(--sz) - 2px);
     white-space: nowrap;
-    background: #fff; color: #222;
-    border-radius: 12px;
-    padding: 1px 7px;
-    font-size: 13px;
-    pointer-events: none;
-  }
-  /* Bare expression beside the head (no dialogue box) */
-  .bubble.emote {
-    top: -12px; left: calc(var(--sz) - 3px);
-    transform: none;
     background: transparent;
+    color: #f5d77a;
     padding: 0;
-    font-size: 16px;
+    font-size: 15px;
     text-shadow: 0 1px 4px #0d1022;
+    pointer-events: none;
   }
 </style>
 </head>
 <body>
 <h1>
-  <span>auto-talk</span>
+  <span>Cosmic Talk</span>
   <span class="clock" id="clock"></span>
-  <span class="run-pill" id="runPill" style="display:none;"></span>
   <span class="stat-pill" id="alignCount"></span>
 </h1>
 <div class="topbar">
-  <button id="newRun">Call 5 together (2:00 run)</button>
+  <button id="newRun">Gather 5 planets for 1 min</button>
   <button id="endRun" class="ghost" style="display:none;">End run</button>
   <div class="note" id="modeNote">Real-time mode: planets follow your local clock.</div>
 </div>
@@ -167,7 +149,7 @@
 <!-- Pick 5 Modal -->
 <div class="modal" id="modal"><div class="panel">
   <h2>Call 5 planets together</h2>
-  <div class="note" id="pickCount">Click 5 planets to invite out for a 2-minute cosmic gathering (0/5 selected).</div>
+  <div class="note" id="pickCount">Click 5 planets to invite out for a 1-minute cosmic gathering (0/5 selected).</div>
   <div class="cards" id="cards"></div>
   <div class="modal-actions">
     <button id="moveIn" disabled>Call them out</button>
@@ -244,7 +226,7 @@ const cards = document.getElementById('cards');
 const pickCount = document.getElementById('pickCount');
 const moveIn = document.getElementById('moveIn');
 const summaryModal = document.getElementById('summaryModal');
-const runPill = document.getElementById('runPill');
+const newRunBtn = document.getElementById('newRun');
 const endRunBtn = document.getElementById('endRun');
 const modeNote = document.getElementById('modeNote');
 const alignCountEl = document.getElementById('alignCount');
@@ -286,11 +268,12 @@ function drawPicker() {
     };
     cards.append(c);
   }
-  pickCount.textContent = `Click 5 planets to invite out for a 2-minute cosmic gathering (${picks.length}/5 selected).`;
+  pickCount.textContent = `Click 5 planets to invite out for a 1-minute cosmic gathering (${picks.length}/5 selected).`;
   moveIn.disabled = picks.length !== 5;
 }
 
-document.getElementById('newRun').onclick = () => {
+newRunBtn.onclick = () => {
+  if (runActive) return;
   picks = [...mine];
   drawPicker();
   modal.classList.add('open');
@@ -306,14 +289,15 @@ moveIn.onclick = () => {
 
 function startRun() {
   runActive = true;
-  runLeft = 120;
+  runLeft = 60;
   runMoments = [];
   radiance = 0;
   gravity = 0;
   renderMeters();
-  runPill.style.display = '';
+  newRunBtn.disabled = true;
+  newRunBtn.textContent = 'Gathering 01:00';
   endRunBtn.style.display = '';
-  modeNote.textContent = '2-minute gathering: your 5 are out alongside the real-time cosmos.';
+  modeNote.textContent = '1-minute gathering: your 5 are out alongside the real-time cosmos.';
   momentLog.textContent = 'Your 5 planets stepped out to mingle...';
 
   for (const id of mine) {
@@ -324,11 +308,12 @@ function startRun() {
 
 function finishRun() {
   runActive = false;
-  runPill.style.display = 'none';
+  newRunBtn.disabled = false;
+  newRunBtn.textContent = 'Gather 5 planets for 1 min';
   endRunBtn.style.display = 'none';
   modeNote.textContent = 'Real-time mode: planets follow your local clock.';
 
-  const aligned = radiance >= 70 && gravity >= 70;
+  const aligned = radiance >= 50 && gravity >= 50;
   if (aligned) {
     alignments += 1;
     saveState();
@@ -338,14 +323,14 @@ function finishRun() {
   document.getElementById('summaryTitle').textContent = aligned ? '✨ Cosmic Alignment Achieved!' : 'Gathering Complete!';
   document.getElementById('summarySub').textContent = aligned
     ? 'Your 5 planets balanced Radiance and Gravity into harmony.'
-    : `Shared ${runMoments.length} moment${runMoments.length === 1 ? '' : 's'} — try a different mix to reach 70%+ on both!`;
+    : `Shared ${runMoments.length} moment${runMoments.length === 1 ? '' : 's'} — try a different mix to reach 50%+ on both!`;
   document.getElementById('sumRad').textContent = `${radiance}%`;
   document.getElementById('sumGrav').textContent = `${gravity}%`;
 
   const sumList = document.getElementById('sumList');
   sumList.innerHTML = runMoments.length
     ? runMoments.map(m => `<li>${m}</li>`).join('')
-    : '<li>A quiet two minutes under the stars.</li>';
+    : '<li>A quiet minute under the stars.</li>';
   summaryModal.classList.add('open');
 }
 
@@ -369,7 +354,7 @@ function renderMeters() {
   gravBar.style.width = `${gravity}%`;
   radVal.textContent = `${radiance}%`;
   gravVal.textContent = `${gravity}%`;
-  const aligned = radiance >= 70 && gravity >= 70;
+  const aligned = radiance >= 50 && gravity >= 50;
   harmonyBanner.classList.toggle('aligned', aligned);
   cosmos.classList.toggle('aligned', aligned);
 }
@@ -381,17 +366,11 @@ orbitSvg.setAttribute('class', 'orbit-svg');
 cosmos.prepend(orbitSvg);
 
 const orbitEls = {};
-const homeDotEls = {};
 for (const id of ids) {
   const o = document.createElementNS(svgNS, 'ellipse');
   o.setAttribute('class', 'orbit-ellipse');
   orbitSvg.append(o);
   orbitEls[id] = o;
-
-  const h = document.createElement('div');
-  h.className = 'home-dot';
-  cosmos.append(h);
-  homeDotEls[id] = h;
 }
 
 function getHomeXY(id, W, H) {
@@ -406,9 +385,11 @@ function getHomeXY(id, W, H) {
   return { x: W / 2 + Math.cos(ang) * rx, y: H / 2 + Math.sin(ang) * ry, rx, ry, ang, idx };
 }
 
+const sunEl = cosmos.querySelector('.sun');
 function layoutOrbits() {
   const W = cosmos.clientWidth || 720;
   const H = cosmos.clientHeight || 420;
+  if (sunEl) sunEl.style.zIndex = Math.round(H / 2);
   orbitSvg.setAttribute('viewBox', `0 0 ${W} ${H}`);
   for (const id of ids) {
     const home = getHomeXY(id, W, H);
@@ -416,8 +397,6 @@ function layoutOrbits() {
     orbitEls[id].setAttribute('cy', H / 2);
     orbitEls[id].setAttribute('rx', home.rx);
     orbitEls[id].setAttribute('ry', home.ry);
-    homeDotEls[id].style.left = `${home.x}px`;
-    homeDotEls[id].style.top = `${home.y}px`;
   }
 }
 
@@ -546,7 +525,7 @@ function tick(ts) {
 
   if (runActive) {
     runLeft = Math.max(0, runLeft - dt);
-    runPill.textContent = `Gathering ${mmss(runLeft)}`;
+    newRunBtn.textContent = `Gathering ${mmss(runLeft)}`;
     if (runLeft <= 0) finishRun();
   }
 
@@ -686,11 +665,10 @@ function tick(ts) {
   for (const id of ids) {
     const a = agents[id];
     const where = currentWhere[id] || 'in';
-    let offX = 0, offY = 0, bubbleText = '', isEmote = false;
+    let offX = 0, offY = 0, bubbleText = '';
 
     if (where === 'asleep') {
       bubbleText = '💤';
-      isEmote = true;
     } else if (where === 'out') {
       a.x = Math.max(pad, Math.min(W - pad, a.x));
       a.y = Math.max(pad, Math.min(H - pad - 12, a.y));
@@ -708,8 +686,7 @@ function tick(ts) {
         }
       } else if (a.state === 'react' && a.outcome) {
         bubbleText = a.outcome.emote;
-        isEmote = true;
-        if (a.outcome.kind === 'sparkle') offY = -Math.abs(Math.sin(simTime * 9)) * 7.5;
+          if (a.outcome.kind === 'sparkle') offY = -Math.abs(Math.sin(simTime * 9)) * 7.5;
         else if (a.outcome.kind === 'music') { offX = Math.sin(simTime * 5) * 2.5; offY = -Math.abs(Math.sin(simTime * 5)) * 3; }
         else if (a.outcome.kind === 'warm') offY = -Math.abs(Math.sin(simTime * 4)) * 2.5;
         else if (a.outcome.kind === 'hug' && a.partner) {
@@ -724,6 +701,7 @@ function tick(ts) {
 
     a.el.style.left = `${(a.x + offX).toFixed(1)}px`;
     a.el.style.top = `${(a.y + offY).toFixed(1)}px`;
+    a.el.style.zIndex = Math.round(a.y + offY);
 
     const r = a.sz / 2;
     const scale = a.sz / 34;
@@ -734,7 +712,6 @@ function tick(ts) {
     a.e1.style.left = `${(fx + ex).toFixed(1)}px`; a.e1.style.top = `${(fy + ey).toFixed(1)}px`;
     a.e2.style.left = `${(fx - ex).toFixed(1)}px`; a.e2.style.top = `${(fy - ey).toFixed(1)}px`;
 
-    a.bubble.className = isEmote ? 'bubble emote' : 'bubble';
     a.bubble.textContent = bubbleText;
     a.bubble.style.display = bubbleText ? '' : 'none';
   }
